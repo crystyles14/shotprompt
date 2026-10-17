@@ -134,7 +134,7 @@ Official guidance:
 - https://higgsfield.ai/academy/courses/brand-visuals-ai/marketing-studio-try-ons
 
 ### Standalone backup
-Download `shotprompt-2.9.0.zip`, extract it, then open `index.html` or serve the folder with any static web host. The current prompt builder needs no server or account; copy/download availability can depend on browser permissions. Preview images stay local and must be reattached after opening a project. Hosted previous-studio links require the hosted site.
+Download `shotprompt-2.9.0.zip`, extract it, then open `index.html` or serve the folder with any static web host. The current prompt builder needs no server or account; copy/download availability can depend on browser permissions. Preview images stay local and must be reattached after opening a project. 
 
 ## 2.9.0 — Visual picker and workflow
 
@@ -146,8 +146,12 @@ Completed in this update: visual family and variation picker, mobile step naviga
 
 ## GitHub Pages migration — 17 October 2026
 
-This is the complete static ShotPrompt 2.9.0 builder. It runs independently of Higgsfield hosting. Higgsfield remains a destination for prompts, not a runtime dependency. The previous hosted studio is an explicit archive link only.
+This is the complete static ShotPrompt 2.9.0 builder. It runs independently of Higgsfield hosting. Higgsfield remains a destination for prompts, not a runtime dependency. The current deployment contains only the new builder; retired workspace URLs redirect to it.
 
 Publish from the `main` branch and `/(root)` in Settings → Pages. `.nojekyll` keeps the source as plain static files. Future commits to this branch deploy automatically after Pages is enabled. No installation, server, API key, sign-in or media generation is required by the builder.
 
 The site retains noindex/nofollow. This discourages indexing, but does not make a public website or public repository private. Browser saves are scoped to the site address: export projects from the old host and import them here. Reference previews must be reattached locally.
+
+## 2.9.1 — Current builder only
+
+Removed original workspace links, old hosted-studio access and legacy application code from the deployed pages and current download. Old workspace URLs redirect to the current builder. Image, Video, Character sheet, editing and current model profiles are retained. Original offline archives remain untouched.
