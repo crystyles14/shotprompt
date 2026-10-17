@@ -71,9 +71,9 @@ if(!active(s))return null;
 const notes=[];if(s.model==='marketingVideo')notes.push('Marketing Studio: this is requested action pacing, not a native cut timeline. Select the format, duration, Product and Avatar separately.');
 if(s.timelineMode==='multi'){
 if(s.model==='wan26')notes.push('Alibaba Cloud Wan 2.6: set shot_type to multi and prompt_extend to true. These API settings are not enabled by this text.');
-if(s.model==='kling3')notes.push('Enable Multi-Shot and Custom Multi-Shot in the destination. Enter each shot’s text and duration in its shot controls. On a compatible Higgsfield route, multi_shots and multi_prompt are separate settings; copying this text alone does not set them.');
+if(s.model==='kling3')notes.push('Enable Multi-Shot and Custom Multi-Shot in the destination. Enter each shot’s text and duration in its shot controls. On a compatible provider route, multi_shots and multi_prompt are separate settings; copying this text alone does not set them.');
 if(s.model==='wan3')notes.push('Use the numbered timestamp prompt in a Wan 3.0 generation workflow. Select the destination duration separately.');
-if(['seedance','seedance25'].includes(s.model))notes.push('Shot numbers define sequence; durations are requested pacing, not guaranteed cut times. Set total duration in Higgsfield.');
+if(['seedance','seedance25'].includes(s.model))notes.push('Shot numbers define sequence; durations are requested pacing, not guaranteed cut times. Set total duration in your generation app.');
 if(s.model==='h3')notes.push('The first H3 shot is untimed; later shots begin with increasing cut timestamps. This adapts the base shot/cut structure; specialized speaker and reference-task formats still need review.');
 }
 if(s.videoTask==='extend')notes.push('All ranges are relative to the new extension. Per-segment camera/framing selections are not emitted; the source camera trajectory is preserved.');
