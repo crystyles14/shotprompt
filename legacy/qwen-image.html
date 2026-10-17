@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<!--
+  Image prompt builder v2.2.0 (single file, no build step, works offline).
+  Models: Qwen Image 2.1, Seedream (Dola / Higgsfield), Nano Banana, GPT Image, FLUX.2.
+  To reuse on another site (e.g. ShotPrompt):
+    1. Change colors in the :root and dark-mode blocks at the top of <style>.
+    2. Change CONFIG (search "Site settings") for the starting characters.
+    3. Change <title> and the <h1> text.
+  Everything else (prompt formats, word lists, checks) stays the same.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="version" content="1.14.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Image prompts | ShotPrompt</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#EEF2F1;--panel:#fff;--ink:#17262B;--mute:#55666B;--line:#C9D5D4;--accent:#0E6B6F;--accent-ink:#fff;--hi:#F2C96B;--warn:#8A4B00;--warnbg:#FFF4E0;--ok:#1E6B3A;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1A1D;--panel:#16252A;--ink:#E6EFEE;--mute:#93A8AC;--line:#2A3E43;--accent:#4FB3B7;--accent-ink:#06191B;--hi:#C99A2E;--warn:#F2C96B;--warnbg:#2B2412;--ok:#7FD39B}}
+:root[data-theme="dark"]{--bg:#0F1A1D;--panel:#16252A;--ink:#E6EFEE;--mute:#93A8AC;--line:#2A3E43;--accent:#4FB3B7;--accent-ink:#06191B;--hi:#C99A2E;--warn:#F2C96B;--warnbg:#2B2412;--ok:#7FD39B}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.7rem;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:1.05rem;margin:0 0 8px}
+h3{font-size:.98rem;margin:12px 0 4px}
+h4{font-size:.92rem;margin:12px 0 0;color:var(--accent)}
+.sub{color:var(--mute);margin:0 0 18px;max-width:64ch}
+.grid{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+.grid>*,.card,.shot,.cblock,.inline,.durrow{min-width:0}
+html,body{overflow-x:hidden}
+.card{overflow-wrap:anywhere}
+pre,textarea,code{max-width:100%}
+@media(max-width:899px){.outta,.hlb{font-size:16px}main{padding-left:12px;padding-right:12px}.card{padding:14px}.bar .inline{width:100%}.bar .inline .btn{flex:1 1 auto}}
+@media(min-width:900px){.grid{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);align-items:start}.outcol{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;padding-right:2px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+label,.lab{display:block;font-size:.88rem;color:var(--mute);margin:10px 0 4px}
+input,textarea,select{width:100%;max-width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+select{text-overflow:ellipsis;white-space:nowrap;overflow:hidden}
+textarea{min-height:58px;resize:vertical}
+input:disabled{opacity:.55}
+input:focus,textarea:focus,select:focus,button:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chk{display:flex;align-items:center;gap:8px;color:var(--ink);margin:8px 0}
+.chk input{width:20px;height:20px;margin:0;flex:none;accent-color:var(--accent)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:inherit;font-size:.92rem;font-weight:600;border:1.5px solid var(--ink);background:var(--panel);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer;box-shadow:0 2px 0 var(--ink);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.seg button:active,.ptab:active{transform:translateY(1px);box-shadow:0 1px 0 var(--ink)}
+.btn{font:inherit;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.sm{padding:5px 10px;font-size:.88rem}
+.inline{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.inline select{width:auto;flex:1;min-width:160px}
+.row2{display:grid;gap:0 12px;grid-template-columns:1fr}
+@media(min-width:560px){.row2{grid-template-columns:1fr 1fr}}
+.cblock+.cblock{border-top:1px dashed var(--line);margin-top:12px}
+.shot{border-top:1px dashed var(--line);margin-top:12px;padding-top:2px}
+.shothead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.actsel{margin-top:8px}
+.hint{color:var(--mute);font-size:.86rem;margin:6px 0 0}
+.outta{display:block;width:100%;min-height:240px;resize:vertical;box-sizing:border-box;margin:0;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px}
+.hlwrap{position:relative;border-radius:8px;background:var(--bg)}
+.hlwrap .outta{position:relative;z-index:1;background:transparent;overflow:auto;scrollbar-gutter:stable;white-space:pre-wrap;overflow-wrap:break-word}
+.hlb{position:absolute;inset:0;margin:0;box-sizing:border-box;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;padding:12px;border:1px solid transparent;border-radius:8px;white-space:pre-wrap;overflow-wrap:break-word;color:transparent;overflow:hidden;scrollbar-gutter:stable;pointer-events:none}
+.hlb mark{background:var(--hi);color:transparent;border-radius:3px;opacity:.6}
+.edn{margin:8px 0 0;padding:8px 10px;border-radius:8px;background:var(--line);font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.edn[hidden]{display:none}
+.fw{position:relative}
+.fw input,.fw textarea{padding-right:34px}
+.clr{position:absolute;right:6px;top:7px;width:24px;height:24px;padding:0;border:0;border-radius:50%;background:var(--line);color:var(--ink);font:16px/24px system-ui,sans-serif;cursor:pointer;opacity:.75}
+.clr:hover{opacity:1;background:var(--hi);color:#17262B}
+.fw input:placeholder-shown+.clr,.fw textarea:placeholder-shown+.clr{display:none}
+.steps{margin:0 0 12px}.sbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:10px}.sbar span{display:block;height:100%;background:var(--accent);transition:width .3s}
+.steps select{width:auto;max-width:240px}
+.wnav{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:14px;border-top:1px solid var(--line)}.wnav [data-act=back]{margin-right:auto}
+.opt{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;opacity:.6;margin-left:6px;vertical-align:middle}.btn[disabled]{opacity:.4;cursor:default}
+.flash{animation:flash 2.6s ease-out}@keyframes flash{0%,45%{box-shadow:0 0 0 3px var(--hi)}100%{box-shadow:0 0 0 3px transparent}}
+.wc.good{color:var(--ok)}.wc.mid{color:var(--warn)}
+@media(prefers-reduced-motion:reduce){.sbar span{transition:none}.flash{animation:none}}
+.tl{display:flex;height:28px;border-radius:6px;overflow:hidden;border:1px solid var(--line);margin:8px 0 4px}
+.tl span{display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--accent-ink);background:var(--accent);border-right:2px solid var(--panel);white-space:nowrap;overflow:hidden;min-width:0;transition:flex-grow .1s}
+.tl span:nth-child(even){background:var(--hi);color:#17262B}.tl span:last-child{border-right:0}
+.durrow{display:flex;align-items:center;gap:10px;margin:8px 0 2px}.durrow label{margin:0;white-space:nowrap}
+input[type=range]{width:100%;accent-color:var(--accent);padding:0;border:0;background:transparent;height:24px}
+@media(prefers-reduced-motion:reduce){.tl span{transition:none}}
+.cmpbox{border-top:1px solid var(--line);margin-top:14px;padding-top:6px}.cmpbox h3{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.cmpbox pre{max-height:220px;overflow:auto}
+.pilltabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin-bottom:6px;border-bottom:1px solid var(--line);scrollbar-width:none}
+.pilltabs::-webkit-scrollbar{display:none}
+.ptab{font:inherit;font-size:.92rem;font-weight:600;border:1.5px solid var(--ink);background:var(--panel);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer;box-shadow:0 2px 0 var(--ink);white-space:nowrap}
+.ptab[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.glabel{font-size:.82rem;font-weight:700;letter-spacing:.02em;color:var(--mute);margin:16px 0 6px}
+.chips.pills{gap:8px}
+.chips.pills .chip{border:1.5px solid var(--ink);background:var(--panel);font-weight:500;padding:7px 14px;box-shadow:0 2px 0 var(--ink)}
+.chips.pills .chip:hover,.chips.pills .chip[aria-pressed="true"]{background:var(--hi);color:#17262B;border-color:var(--ink)}
+.chips.pills .chip:active{transform:translateY(1px);box-shadow:0 1px 0 var(--ink)}
+.qinfo{margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px}
+.btn.link{border-color:transparent;background:transparent;color:var(--accent);text-decoration:underline;text-underline-offset:3px;box-shadow:none}
+@media(max-width:899px){.chk{min-height:44px;margin:2px 0}.chk input{width:24px;height:24px}
+ .btn,.seg button,.ptab,.chips .chip,.btn.sm{min-height:44px}.chips .chip{padding:8px 14px}
+ input[type=range]{height:44px}.clr{width:32px;height:32px;top:4px;font-size:20px;line-height:32px}.fw input,.fw textarea{padding-right:44px}
+ .mbhint{display:none}.sub{font-size:.95rem;margin-bottom:12px}.steps select{max-width:60%}}
+.pilltabs.more{-webkit-mask-image:linear-gradient(90deg,#000 80%,transparent);mask-image:linear-gradient(90deg,#000 80%,transparent)}
+.lrow{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}.lrow label{margin-bottom:4px}
+.wbtn{display:none;flex:none;font:inherit;font-size:.85rem;font-weight:600;color:var(--accent);background:transparent;border:0;padding:0 2px;min-height:28px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+#sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:8}
+#sheet{position:fixed;left:0;right:0;bottom:0;max-height:62vh;overflow:auto;background:var(--panel);color:var(--ink);border-radius:16px 16px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.25);z-index:9;padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+#sheet .shead{display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:-14px;background:var(--panel);padding:4px 0 8px;z-index:1}
+#sheet .chip{border-radius:18px;text-align:left}
+.cg{display:block;font-size:.74rem;font-weight:400;color:var(--mute);margin-top:2px;white-space:normal}
+@media(max-width:899px){.wbtn{display:inline-block;min-height:36px}}
+.ver{color:var(--mute);font-size:.82rem;text-align:center;margin:28px 0 0}
+.map ul,.warn{margin:6px 0 0;padding-left:18px}
+.map li{margin:2px 0}
+code{font:12.5px ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.warn{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:10px 10px 10px 28px;font-size:.88rem;margin:0 0 10px}
+.ok{color:var(--ok);font-size:.9rem;margin:0 0 10px}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.bar h2{margin:0}
+pre{white-space:pre-wrap;word-break:break-word;margin:0;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px}
+details{border-top:1px solid var(--line);padding:8px 0}
+summary{cursor:pointer;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font:inherit;font-size:.85rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer}
+.chip:hover{background:var(--hi);color:#17262B;border-color:var(--hi)}
+.lib{list-style:none;padding:0;margin:0}
+.lib li{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)}
+.lib li:first-child{border-top:0}
+.lib b{display:block;font-weight:600}
+#toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:5}
+#toast.on{opacity:1}
+.mbar{display:none}
+@media(max-width:899px){.mbar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;justify-content:flex-end;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--panel);border-top:1px solid var(--line);z-index:4}main{padding-bottom:96px}}
+@media(prefers-reduced-motion:reduce){#toast{transition:none}}
+.map ul{list-style:none;padding-left:0}
+.seg .lab{width:100%}
+</style>
+<style>/* ShotPrompt design system 2.0 - tokens, top bar, focus. Shared by every page. */
+:root{
+ --sp-bg:#ECECE8;--sp-panel:#F8F8F5;--sp-key:#E1E1DC;--sp-key-h:#D6D6D0;--sp-ink:#1F1F1E;--sp-mute:#5C5C57;
+ --sp-line:#CFCFC9;--sp-field:#85857E;--sp-or:#C2441A;--sp-or-ink:#FFFFFF;--sp-ok:#3B7537;--sp-warn:#8A3A0E;--sp-warn-bg:#F6E9DD;
+ --sp-screen:#1F1F1E;--sp-screen-ink:#ECECE7;
+ --sp-r-panel:6px;--sp-r-field:4px;--sp-ease:cubic-bezier(.2,.7,.2,1);--sp-fast:.14s;--sp-med:.28s;
+ color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --sp-bg:#191A19;--sp-panel:#222321;--sp-key:#2E2F2D;--sp-key-h:#3A3B38;--sp-ink:#ECECE7;--sp-mute:#A4A49E;
+ --sp-line:#3A3B38;--sp-field:#737470;--sp-or:#F07A40;--sp-or-ink:#1A1A19;--sp-ok:#8FC98A;--sp-warn:#F2C08B;--sp-warn-bg:#2E2418;
+ --sp-screen:#0F100F;--sp-screen-ink:#ECECE7;color-scheme:dark}}
+:root[data-theme="dark"]{
+ --sp-bg:#191A19;--sp-panel:#222321;--sp-key:#2E2F2D;--sp-key-h:#3A3B38;--sp-ink:#ECECE7;--sp-mute:#A4A49E;
+ --sp-line:#3A3B38;--sp-field:#737470;--sp-or:#F07A40;--sp-or-ink:#1A1A19;--sp-ok:#8FC98A;--sp-warn:#F2C08B;--sp-warn-bg:#2E2418;
+ --sp-screen:#0F100F;--sp-screen-ink:#ECECE7;color-scheme:dark}
+.sp-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;max-width:1180px;margin:0 auto;padding:10px 16px;border-bottom:1px solid var(--sp-line);font-family:"Inter Tight",system-ui,-apple-system,"Segoe UI",sans-serif}
+.sp-mark{display:inline-flex;align-items:center;gap:10px;min-height:40px;color:var(--sp-ink);text-decoration:none;font-weight:700;font-size:1.05rem;letter-spacing:-.02em}
+.sp-mark::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--sp-or)}
+.sp-ver{font-size:.78rem;font-variant-numeric:tabular-nums;color:var(--sp-mute);border:1px solid var(--sp-line);border-radius:999px;padding:1px 8px;margin-left:-6px}
+.sp-nav{display:flex;gap:4px;margin-left:auto}
+.sp-nav a{display:inline-flex;align-items:center;min-height:40px;color:var(--sp-mute);text-decoration:none;font-size:.95rem;padding:0 14px;border-radius:999px;white-space:nowrap}
+.sp-nav a:hover{color:var(--sp-ink);background:var(--sp-key)}
+.sp-nav a[aria-current="page"]{color:var(--sp-ink);background:var(--sp-key);font-weight:600}
+.sp-top a:focus-visible{outline:2px solid var(--sp-ink);outline-offset:2px}
+@media (max-width:640px){
+ .sp-top{padding:8px 12px 0;gap:0 12px}
+ .sp-nav{order:3;width:calc(100% + 24px);margin:4px -12px 0;padding:0 12px 8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+ .sp-nav::-webkit-scrollbar{display:none}
+ .sp-nav a{min-height:40px}}
+.sp-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media (prefers-reduced-motion:no-preference){
+ .sp-mark::before{animation:sp-power .9s ease-out .15s both}
+ @keyframes sp-power{0%{opacity:.25;transform:scale(.7)}60%{opacity:1;transform:scale(1.1)}100%{transform:scale(1)}}
+ .sp-nav a{transition:background-color var(--sp-fast) ease,color var(--sp-fast) ease}}
+/* ShotPrompt design system 2.0 - one look for every builder */
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+ --bg:var(--sp-bg);--fg:var(--sp-ink);--card:var(--sp-panel);--line:var(--sp-line);--acc:var(--sp-ink);--chip:var(--sp-key);--mut:var(--sp-mute);
+ --panel:var(--sp-panel);--ink:var(--sp-ink);--mute:var(--sp-mute);--accent:var(--sp-ink);--accent-ink:var(--sp-bg);
+ --hi:color-mix(in srgb,var(--sp-or) 26%,transparent);--ok:var(--sp-ok);--warn:var(--sp-warn);--warnbg:var(--sp-warn-bg)}
+body{font-family:"Inter Tight",system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:-.005em;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit}
+h1{font-size:clamp(1.75rem,3.2vw,2.25rem);font-weight:650;letter-spacing:-.03em;line-height:1.1;margin-top:24px}
+.sub{color:var(--sp-mute);max-width:62ch}
+h2{letter-spacing:-.015em}
+/* panels */
+.f,.card,.o,.el{border-radius:var(--sp-r-panel);border-color:var(--sp-line);box-shadow:none}
+.card{background:var(--sp-panel)}
+/* fields */
+input,textarea,select{border-radius:var(--sp-r-field);border:1px solid var(--sp-field);background:var(--sp-bg);color:var(--sp-ink)}
+.el input,.el textarea,.el select{background:var(--sp-bg)}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--sp-ink);outline-offset:1px;border-color:var(--sp-ink)}
+input[type=checkbox],input[type=radio]{accent-color:var(--sp-ink);width:18px;height:18px;vertical-align:-3px}
+input[type=range]{accent-color:var(--sp-ink)}
+.outta,.hlwrap,.hlb,pre,code{border-radius:var(--sp-r-field)}
+.outta{border-color:var(--sp-field)}
+.o{border:1px solid var(--sp-ink)}
+/* keys: every choice you tap looks and behaves the same */
+.seg button,.ptab,.chips .chip,.chips.pills .chip,.tabs button,.ch button,.chip{
+ border:1px solid transparent;background:var(--sp-key);color:var(--sp-ink);border-radius:999px;box-shadow:none;font-weight:500}
+.seg button:hover,.ptab:hover,.chips .chip:hover,.chips.pills .chip:hover,.tabs button:hover,.ch button:hover,.chip:hover{background:var(--sp-key-h);color:var(--sp-ink);border-color:transparent}
+.seg button[aria-pressed="true"],.ptab[aria-pressed="true"],.chips .chip[aria-pressed="true"],.chips.pills .chip[aria-pressed="true"],.tabs button.on,.ch button.on{background:var(--sp-ink);color:var(--sp-bg);border-color:var(--sp-ink)}
+.seg button:active,.ptab:active,.chips .chip:active,.chips.pills .chip:active{box-shadow:none}
+/* buttons: ink for actions, orange only for Copy */
+.btn,.r button{border-radius:999px;border:1px solid var(--sp-ink);background:var(--sp-ink);color:var(--sp-bg);font-weight:600;box-shadow:none}
+.btn.ghost,.r button.sec{background:transparent;color:var(--sp-ink);border-color:var(--sp-field)}
+.btn.ghost:hover,.r button.sec:hover{background:var(--sp-key)}
+.btn.link{background:transparent;border-color:transparent;color:var(--sp-mute)}
+.btn.link:hover{color:var(--sp-ink)}
+#cp,.btn[data-act="copy"]{background:var(--sp-or);border-color:var(--sp-or);color:var(--sp-or-ink)}
+.btn[disabled]{opacity:.4}
+/* small parts */
+.clr{background:var(--sp-key);color:var(--sp-ink);font-family:inherit}
+.clr:hover{background:var(--sp-ink);color:var(--sp-bg)}
+.clr::after{content:"";position:absolute;inset:-8px}
+.sbar{height:4px;background:var(--sp-line);border-radius:999px}
+.sbar span{background:var(--sp-ink)}
+.warn{border-radius:var(--sp-r-field)}
+.edn{border-radius:var(--sp-r-field);background:var(--sp-key)}
+summary{min-height:36px;display:flex;align-items:center;gap:6px}
+#toast{border-radius:999px;background:var(--sp-ink);color:var(--sp-bg)}
+.g{text-transform:none;letter-spacing:0;font-size:12px}
+h4{color:var(--sp-mute)}
+.ver{margin-top:40px;color:var(--sp-mute)}
+.wc.mid{color:var(--sp-warn)}.wc.good{color:var(--sp-ok)}
+.mbar{background:var(--sp-panel);border-top:1px solid var(--sp-line)}
+/* touch: 44px targets on phones and tablets */
+@media (pointer:coarse){.seg button,.ptab,.chip,.btn,.r button,.tabs button,summary{min-height:44px}}
+:focus-visible{outline:2px solid var(--sp-ink);outline-offset:2px}
+/* motion: short, and only as an answer to what you just did */
+@media (prefers-reduced-motion:no-preference){
+ .seg button,.chip,.ptab,.btn,.tabs button,.r button,.clr{transition:background-color var(--sp-fast) ease,color var(--sp-fast) ease,border-color var(--sp-fast) ease,transform .08s ease}
+ .seg button:active,.chip:active,.ptab:active,.btn:active,.tabs button:active,.r button:active{transform:translateY(1px)}
+ .seg button[aria-pressed="true"],.chip[aria-pressed="true"],.ptab[aria-pressed="true"]{animation:sp-key .22s var(--sp-ease)}
+ @keyframes sp-key{0%{transform:scale(.96)}100%{transform:none}}
+ #out.sp-flash,.outta.sp-flash{animation:sp-flash .7s ease-out}
+ @keyframes sp-flash{0%{box-shadow:0 0 0 2px var(--sp-ink)}100%{box-shadow:0 0 0 2px transparent}}
+ .sp-done::after{animation:sp-pop .25s var(--sp-ease)}
+ @keyframes sp-pop{0%{opacity:0;transform:scale(.9)}100%{opacity:1;transform:none}}
+ .sbar span{transition:width .45s var(--sp-ease)}
+ .sp-step-in{animation:sp-step .32s var(--sp-ease)}
+ @keyframes sp-step{0%{opacity:0;transform:translateX(10px)}100%{opacity:1;transform:none}}
+ #toast{transition:opacity .2s ease,transform .2s var(--sp-ease)}
+ details[open]>*:not(summary){animation:sp-open .22s var(--sp-ease)}
+ @keyframes sp-open{0%{opacity:0;transform:translateY(-4px)}100%{opacity:1;transform:none}}
+}
+.sp-done{position:relative;color:transparent!important}
+.sp-done::after{content:"\2713  Copied";position:absolute;inset:0;display:grid;place-items:center;color:var(--sp-or-ink);font-weight:600;white-space:nowrap}
+
+.ver{margin-top:36px}
+.sp-fmt{margin:0 0 12px}.sp-fmt .lab{margin-top:0}.sp-fmt .hint{margin-top:6px}
+</style>
+</head>
+<body>
+<header class="sp-top"><a class="sp-mark" href="index.html">ShotPrompt</a><span class="sp-ver" title="Site version">v1.14.0</span><nav class="sp-nav" aria-label="Builders"><a href="qwen-image.html" aria-current="page">Image</a><a href="h3-video.html">Video</a></nav></header>
+<main>
+<h1>Image prompts</h1>
+<p class="sub">Build a prompt for any image model, step by step. Your work saves in this browser.</p>
+<div class="grid">
+<section id="form" aria-label="Prompt settings"></section>
+<aside class="outcol">
+ <div class="card">
+  <div class="bar"><h2>Your prompt</h2><span class="inline"><button type="button" class="btn link sm" data-act="clear">Clear</button><button type="button" class="btn ghost sm" data-act="save">Save</button><button type="button" class="btn ghost sm" data-act="cmp" aria-expanded="false">Compare models</button><button type="button" class="btn" data-act="copy">Copy prompt</button></span></div>
+  <div id="checks"></div>
+  <div class="hlwrap"><div id="hlb" class="hlb" aria-hidden="true"></div><textarea id="out" class="outta" spellcheck="false" aria-label="Your prompt. You can edit it."></textarea></div>
+  <div id="edn" class="edn" hidden>You edited the prompt by hand, so changes in the boxes will not update it. <button type="button" class="btn ghost sm" data-act="rebuild">Rebuild from boxes</button></div>
+  <p class="hint">You can type in the prompt to change the final text. The words from the box you are typing in are highlighted.</p>
+  <p class="hint wc" id="wc"></p>
+  <div id="cmp" class="cmpbox" hidden></div>
+ </div>
+ <div class="card"><h2>Vocabulary</h2><div id="vocab"></div></div>
+ <div class="card"><h2>Saved prompts</h2><ul class="lib" id="lib"></ul></div>
+</aside>
+</div>
+<p class="ver">Image builder version 2.2.0</p>
+</main>
+<div class="mbar"><a class="btn ghost" href="#out">See prompt</a><button type="button" class="btn" data-act="copy">Copy prompt</button></div>
+<div id="sheetbg" hidden></div><div id="sheet" role="dialog" aria-modal="true" aria-label="Word list" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+var W={
+"Color treatment":"full-color|normal colors;greyscale|only shades of grey;black-and-white|strong black and white;monochrome|one color only;duotone|two colors only, like a poster;sepia-toned|brown, old photo look;muted-color|soft, quiet colors;high-saturation|very strong colors;desaturated|colors almost grey",
+"Genre":"fashion editorial|magazine fashion story;beauty|close-up of face and makeup;sports campaign|advertising for a sports brand;fitness advertising|gym and training advert;street style|fashion in the street;lifestyle|everyday life, natural;documentary|real moments, not posed;album cover|cover for music;movie poster|poster for a film;motivational poster|poster with an inspiring feeling;product advertising|showing a product to sell;avant-garde|very new and experimental",
+"Photo":"photo|a normal photo;portrait photo|focus on one person;cinematic film still|looks like a frame from a movie;candid smartphone photo|casual phone picture, not posed;documentary photo|real life, an honest moment;studio photo|taken in a photo studio;street photo|everyday life in the city;product photo|clean picture of an object;drone photo|taken from high in the sky;vintage 35mm film photo|old film camera look with grain",
+"Art":"digital illustration|drawn on a computer;3D render|made in 3D software;watercolor painting|soft paint with water;oil painting|thick, classic paint;anime illustration|Japanese cartoon style;comic book panel|bold lines, like a comic;flat minimal poster|simple shapes, few colors;pencil sketch|drawn with a pencil;mixed-media collage|made from many cut and pasted pieces;pixel art image|small squares, like old games",
+"Pose":"in profile|seen from the side;in a three-quarter view|face turned a little to the side;facing the camera|front view;with the chin tilted upward|head up, proud or dreaming;with the chin down|head down, serious or sad;looking over the shoulder|turning the head back;with the back to the camera|seen from behind;with the head turned away|face hidden a little;with one hand on the hip|confident pose;with arms raised|open, winning pose;with the body leaning forward|ready, focused pose;in a fighting stance|ready to fight, like boxing",
+"Cut":"oversized|very big and loose;structured|stiff shape that holds its form;high-necked|covers the neck;cropped|short, shows the waist;asymmetric|different on each side;tailored|made to fit the body well;loose and flowing|soft, moves in the wind;fitted|close to the body;layered|many pieces on top of each other;sleeveless|no sleeves",
+"Fabric":"heavyweight cotton|thick cotton;satin|smooth and shiny;leather|animal skin material;faux leather|fake leather;neoprene|thick, rubbery sports fabric;mesh|fabric with small holes;knit|made like a sweater;denim|jeans material;nylon|light, shiny sports fabric;wool|warm animal hair fabric;silk|very smooth, luxury fabric;linen|light summer fabric",
+"Pattern":"a camouflage pattern|army pattern;oversized polka dots|big round dots;bold stripes|thick lines;plaid|checked pattern, like a shirt;houndstooth|small broken check pattern;an animal print|like leopard or zebra skin;a floral print|flowers;a geometric pattern|squares, triangles, shapes;a gradient fade|color slowly changes;a solid color|no pattern",
+"Construction details":"pleats|folded lines in fabric;cargo straps|belt-like bands;buckles|metal clips on straps;zippers|metal teeth closures;utility stitching|strong visible sewing;large pockets|big pockets on the outside;ruffles|wavy frills;a belted waist|a belt at the middle;raw edges|unfinished, rough edges;reflective panels|parts that shine in light",
+"Props":"holding a matte-leather bag with brushed-metal buckles|bag;holding boxing gloves|for boxing;holding a basketball|sport ball;holding a water bottle|drink;holding a jump rope|for training;holding a trophy|prize for winning;holding a single flower|soft, emotional;holding an umbrella|for rain;wearing thick-rimmed black sunglasses|glasses for the sun;wearing leather gloves|gloves on the hands;wearing a chrome wristwatch|shiny watch;wearing a gold chain|necklace",
+"Finish":"matte|not shiny;glossy|very shiny;brushed metal|metal with fine lines;chrome|mirror-like metal;worn|old and used;scratched|small damage lines;polished|clean and shiny;textured|you can see the surface",
+"Skin and detail":"hyper-detailed skin texture|skin looks very real and sharp;visible pores|tiny holes in the skin;natural skin imperfections|small marks, not perfect;sweat on the skin|wet from effort;dirt and dust on the skin|from hard work outside;smooth retouched skin|perfect skin, like a magazine;freckles visible in the light|small dots on the skin;goosebumps on the arms|small bumps from cold or emotion",
+"Backdrop":"a seamless paper backdrop|smooth studio paper behind the subject;a smooth color gradient|colors slowly change;a mixed-media graphic collage|many cut and pasted shapes;a plain studio wall|simple wall;a painted canvas backdrop|old style painted cloth;a large torn paper poster|ripped paper look",
+"Shapes and patterns":"overlapping circles|circles on top of each other;semi-circles|half circles;bold zebra stripes|black and white stripes;halftone dots|printed dot pattern;topographic contour lines|map lines like mountains;grid lines|square lines;paint splashes|thrown paint;geometric blocks|squares and rectangles;radiating sun rays|lines coming from a center",
+"Art movement":"pop art|bright comic colors, 1960s;Bauhaus|simple shapes and primary colors;Memphis design|playful 1980s shapes;retro-futuristic|the future as seen from the past;Swiss poster|clean grid, bold type look;brutalist|rough, heavy, raw;art deco|1920s elegant lines;vaporwave|pink and purple, 1990s internet",
+"Light setup":"chiaroscuro lighting|very strong light and dark;Rembrandt lighting|small triangle of light on the cheek;split lighting|half the face bright, half dark;butterfly lighting|light from above the face, beauty look;loop lighting|soft small shadow from the nose;clamshell lighting|light from above and below, beauty look;a hard key light|strong main light;a single top light|one light from above;low-key lighting|mostly dark image;high-key lighting|mostly bright image;a hair light|light on the hair from behind",
+"Contrast A":"her calm face|still and peaceful;his calm face|still and peaceful;the monochrome outfit|clothes in one color;the small figure|the person looks small;the still body|not moving;the dark subject|person in shadow;the soft light on the face|gentle light;the tired body|exhausted",
+"Contrast B":"the storm behind her|wild weather;the storm behind him|wild weather;the vivid background|very colorful;the huge empty space|big and empty;the chaos around|busy, messy surroundings;the bright city lights|many lights;the hard concrete walls|cold, hard place;the burning sunrise|strong orange sky",
+"Feeling":"a feeling of quiet strength|strong but calm;intense visual dissonance|things clash on purpose;a sense of loneliness|feeling alone;a feeling of hope|good things will come;a sense of power|strong, in control;dramatic tension|exciting, something will happen;a feeling of freedom|free and open",
+"Emphasis":"sharp silhouettes|clear dark outlines;the character's determination|will not give up;the scale of the challenge|how big the task is;clean graphic shapes|simple strong shapes;the emotion in the face|feelings show;dynamic compositional balance|balanced but full of energy",
+"Image finish":"paper cut-out edges|shapes look cut from paper;clean graphic novel textures|like a quality comic book;fine film grain|small grain, like film;sharp silhouettes|clear outlines;a glossy magazine finish|shiny print look;a matte print look|soft, not shiny;halftone print texture|printed dots;soft cinematic bloom|soft glow around lights",
+"Product types":"a pair of white running shoes|sport shoes;a protein shaker bottle|bottle for gym drinks;a sports water bottle|bottle for water;a pair of wireless earbuds|small headphones;a smartwatch|watch with a screen;a perfume bottle|small glass bottle with scent;a skincare jar|small pot of face cream;a can of energy drink|metal drink can;a gym bag|sport bag;a pair of dumbbells|hand weights;a coffee cup|cup for coffee;a smartphone|phone;a hardcover book|book with a hard cover;a backpack|bag for the back;a pair of boxing gloves|gloves for boxing;a yoga mat|soft mat for exercise",
+"Product colors":"matte black|black, not shiny;all white|only white;metallic silver|shiny silver;rose gold|pink gold;neon green|very bright green;navy blue|dark blue;transparent|you can see through it;two-tone black and red|two colors;pastel pink|soft light pink;earthy beige|sand color",
+"Materials":"brushed aluminum|metal with fine lines;stainless steel|shiny strong metal;frosted glass|glass that is not fully clear;clear glass|fully see-through glass;matte plastic|plastic, not shiny;carbon fiber|black woven high-tech material;ceramic|like a coffee mug;soft leather|smooth leather;natural wood|wood;breathable mesh fabric|fabric with small holes;textured rubber|rubber with a grip pattern;recycled cardboard|paper box material",
+"Product details":"visible stitching|you can see the sewing;a textured rubber sole|bottom of a shoe with grip;a smooth curved edge|soft round edge;a metal cap|metal lid;a glowing LED ring|light ring;a pump dispenser|push top for liquid;a ribbed texture|raised lines;a woven pattern|crossed threads;condensation droplets|small water drops from cold;a soft-touch finish|feels soft;a minimalist shape|very simple form",
+"Presentation":"floating in mid-air|in the air, not touching anything;standing upright|standing straight;lying on its side|resting on the side;arranged in a flat lay|laid flat, seen from above;held in one hand|a hand holds it;balanced on a rock|resting on a stone;slightly tilted|at a small angle;placed in the center|in the middle;surrounded by its ingredients|with the things it is made from;in a minimalist display|very clean, simple setup",
+"Surface":"on a polished concrete surface|smooth grey floor;on white marble|white stone with lines;on reflective black acrylic|black shiny surface with reflections;on wet black rocks|dark stones with water;on a wooden table|wood table;on fine sand|beach sand;on a gym floor|rubber floor;on a stone pedestal|stone stand;on a mirror|reflecting surface;on a seamless colored backdrop|smooth color paper",
+"Product effects":"water splashes|water flying around;ice cubes|frozen water pieces;condensation on the surface|cold drops of water;floating fruit slices|fruit pieces in the air;soft smoke|light grey air;sparks|small flying fire points;dust particles in the light|small shining dots;flower petals|small flower parts;liquid swirls|turning liquid;chalk dust in the air|white powder, like at the gym;a soft reflection below|mirror image under it",
+"Product light":"softbox lighting|big soft studio light;rim lighting on the edges|thin bright edges;a backlit glow|light from behind, glowing;a gradient light on the background|background goes light to dark;hard light with crisp reflections|sharp shiny highlights;a single spotlight from above|one light from the top",
+"Product angle":"a hero shot from a low angle|product looks big and strong;a 45-degree angle|seen from the corner, at an angle;a straight-on front view|seen from the front;a top-down flat lay|straight from above;a macro close-up|very close, small details;a side profile view|seen from the side",
+"Animals":"a lion|big wild cat, king of animals;a wolf|wild dog of the forest;a tiger|big striped cat;a wild horse|free running horse;an eagle|big strong bird;a small songbird|little singing bird;an owl|night bird with big eyes;a red fox|small orange wild dog;a brown bear|big strong animal;a deer with antlers|forest animal with horns;a black panther|black wild cat;a gorilla|big strong ape;a bull|strong male cow;a cat|pet;a dog|pet",
+"Sea life":"a humpback whale|very big sea animal;a dolphin|smart sea animal;a jellyfish|soft see-through sea animal;a sea turtle|turtle that swims;a koi fish|orange and white pond fish;an octopus|eight arms;a great white shark|big dangerous fish",
+"Insects":"a butterfly|insect with colorful wings;a dragonfly|long insect with clear wings;a honeybee|bee that makes honey;an ant carrying a leaf|small but strong;a beetle|hard shiny insect;a firefly|insect that glows",
+"Plants and flowers":"a lotus flower|water flower, means a new start;a single red rose|classic love flower;a bonsai tree|very small old tree in a pot;a sunflower|big yellow flower;an old oak tree|big strong old tree;a cherry blossom branch|pink spring flowers;a cactus|desert plant;a seedling growing from the soil|small new plant, means growth;a flower growing through concrete|strong life in a hard place",
+"Food and drink":"a cup of black coffee|hot coffee;a bowl of ramen|Japanese noodle soup;a stack of pancakes|breakfast food;fresh fruit|apples, berries, oranges;a green smoothie|healthy blended drink;a loaf of fresh bread|bread just baked;a healthy meal bowl|rice, vegetables, protein",
+"Vehicles":"a vintage motorcycle|old style motorbike;a sports car|fast car;a racing bicycle|light fast bike;a sailboat|boat with a sail;a steam train|old train with smoke;a rocket launching|rocket going to space;a hot air balloon|big balloon that flies",
+"Buildings":"a lighthouse|tower with a light by the sea;a mountain cabin|small wood house in the mountains;a skyscraper|very tall building;an ancient temple|very old holy building;a stone bridge|old bridge;an empty stadium|big sports place;a staircase leading to the sky|stairs going up into clouds",
+"Fantasy":"a dragon|big flying lizard from stories;a phoenix|fire bird that is born again;a unicorn|horse with one horn;a giant robot|very big machine man;a glowing spirit fox|magic fox with light;a stone golem|monster made of rock",
+"Objects and symbols":"an hourglass|sand clock, means time;a chess king piece|power and strategy;an old compass|finding your way;an old key|opening new doors;a lit candle|hope in the dark;a flag on a mountain summit|reaching the goal;a broken chain|freedom;a burning match|a small start;an open door with light|a new chance;a crown|winning, being the best",
+"Texture":"glossy feathers|shiny feathers;soft fluffy fur|soft hair;wet fur|hair after rain;shining scales|shiny skin like a fish or dragon;rough bark|tree skin;smooth petals|soft flower parts;translucent wings|wings you can see through;a metallic body|made of metal;a weathered surface|old and worn by weather;cracked stone|stone with lines;glowing edges|light around the edges",
+"Subject actions":"perched on a branch|sitting on a branch, like a bird;flying with wings spread|wings fully open;running at full speed|very fast;roaring|loud lion sound;resting quietly|calm, not moving;swimming|moving in water;diving|going down into water or from the sky;howling at the moon|wolf sound at night;hunting|looking for food;blooming|flower opening;growing toward the light|reaching for the sun;glowing softly|small soft light;breaking through the ice|pushing through something hard;standing alone|nobody around;climbing upward|going up",
+"Facing":"facing left|looks to the left side;facing right|looks to the right side;facing the camera|looks at the viewer;facing away from the camera|we see the back;in profile|seen from the side;looking up|head up;looking back over its shoulder|turning the head back;with its tail toward the lower right corner|tail points down right",
+"Phone":"an iPhone 15 Pro, with natural HDR and sharp detail|modern iPhone look, clean and bright;an iPhone, as a casual everyday snapshot|normal phone picture, not posed;a Samsung Galaxy phone, with vivid punchy colors|strong bright phone colors;a Google Pixel phone, with crisp contrast and true colors|clean, real-looking phone photo;an iPhone front camera, as a selfie|photo taken of yourself;an old Android phone, with soft focus and digital noise|low quality early phone look;an early 2000s flip phone, with very low resolution and blurry pixels|very old, very low quality phone",
+"Film stock":"Kodak Portra 400 film, with warm skin tones and fine grain|soft, warm, popular for portraits;Kodak Gold 200 film, with warm nostalgic colors|sunny, yellow, family-photo look;Kodak Ektar 100 film, with rich saturated colors|very colorful, sharp film;Kodak Tri-X 400 black and white film, with strong grain|classic black and white news look;Ilford HP5 black and white film, with soft grey tones|gentle black and white;Fujifilm Superia 400 film, with cool green-tinted shadows|cool, green, Japanese film look;Cinestill 800T film, with red glow around lights at night|night film, red halo around lights;Kodachrome slide film, with deep reds and blues|vintage 1960s magazine colors",
+"Digital camera":"a Canon EOS R5 mirrorless camera, with crisp professional detail|top professional camera;a Sony A7 IV camera, with clean sharp detail|modern professional camera;a Nikon Z8 camera, with natural colors|professional camera;a Leica M rangefinder, with rich contrast and classic tones|luxury classic street camera;a Hasselblad medium format camera, with very fine detail and smooth tones|very high quality studio and fashion camera;a Fujifilm X100V, with soft film-like colors|small camera with a film look;a GoPro action camera, with a fisheye wide angle|sport camera, very wide, curved edges",
+"Retro and lo-fi":"a disposable film camera, with direct flash and light leaks|cheap one-use camera, party look;a Polaroid instant camera, with faded colors and a soft vignette|instant photo, soft and faded;a 2000s digital point-and-shoot camera, with harsh direct flash|early digital camera, Y2K party look;a 1990s camcorder, with soft VHS-like quality|old home video look;Super 8 film, with heavy grain and warm faded colors|old home movie film;a webcam, with low resolution and flat light|computer camera, low quality;a security camera, from a high corner with grainy footage|CCTV look from above;a toy plastic camera, with blurry edges and a strong vignette|lo-fi, dreamy, dark corners",
+"Cutout background":"a transparent background|no background, save as PNG;a plain white background|clean white;a plain black background|clean black;a soft grey studio background|neutral grey;a bright solid color background|one strong color;a green screen background|easy to remove later",
+"Purpose":"for a social media post|Instagram, TikTok, Facebook;for a YouTube thumbnail|small picture for a video;for a poster|printed or online poster;for a website banner|wide picture at the top of a website;for a phone wallpaper|background for a phone;for a product page|online shop picture;for a book cover|front of a book;for a presentation slide|PowerPoint or slides;for a greeting card|birthday or holiday card;for an album cover|music cover",
+"Set variations":"a different camera angle|front, side, close, far;a different pose|the body moves differently;a different facial expression|happy, calm, surprised...;a different background|new place behind the subject;a different time of day|morning, sunset, night;a different outfit|new clothes;a different season|spring, summer, autumn, winter;a different color palette|new colors",
+"Placement":"sitting in the center of one seat, not between two seats|on one seat only;sitting on the seat under the window|seat below the window;sitting with the back against the backrest|leaning back on the seat;standing by the door, holding the handrail|near the door;standing in the middle of the aisle|in the walkway;sitting at the table by the window|at a table;leaning on the wall on the right|resting on a wall;in the center of the frame|middle of the picture;in the left third of the frame|left side;in the right third of the frame|right side",
+"Size references":"one person takes up exactly one seat|correct seat size;the hips fully inside one seat, the back against the backrest and the knees just above the seat edge|sitting size check;the feet flat on the floor in front of the seat|feet reach the ground;the head well below the top of the window|head height check;the same size as the other people in the scene|match other people;the door is taller than the person|door height check;the handrail is at shoulder height|handrail height check",
+"Keep subject":"the person|one person;the two people|both people;the man in the headphones|a specific person;the woman on the left|a specific person;the product|an object for sale;the animal|a pet or animal;the car|a vehicle",
+"Contact changes":"the feet flat on the floor with soft shadows under the shoes|shoes touch the floor;standing on the new floor with matching shadows under the feet|feet touch the new ground;now sitting on a seat that fits the new place|the chair changes to fit;leaning on a wall from the new place|the body rests on the new wall;holding a handrail from the new place|hand holds something new;the elbow resting on a new table|arm on a new surface;reflected in the new floor|a mirror image below",
+"More photo styles":"editorial photo|stylish magazine picture;fashion photograph|clothes and pose are the hero;lifestyle photograph|people using things in real life;macro photograph|very close, tiny details;analog film photo|older look with grain and soft colors;aerial photo|seen from high in the sky;studio portrait|clean, controlled light and background",
+"More art styles":"ink line art|drawn with lines only;2D animation still|flat colors and soft shading, like an animated film;paper cut-out artwork|layers of cut paper;flat vector illustration|simple shapes, no shading;concept art painting|early design art for films and games;storybook illustration|warm, gentle children's book look;ukiyo-e woodblock print|old Japanese print style",
+"Era and genre looks":"1970s film photo|warm, faded, grainy;1980s neon retro image|bright pink and blue lights;1990s disposable camera photo|flash, light leaks, casual;Y2K aesthetic photo|shiny, glossy, early-2000s style;vintage Polaroid photo|soft, faded square photo;film noir still|black and white, hard shadows, crime-movie feel;cyberpunk scene|neon city, high-tech, rainy night;solarpunk scene|green, hopeful future city;steampunk illustration|brass, gears, old machines;dark fantasy painting|gloomy magic world;symmetrical pastel film still|centered, pastel, very neat;peaceful anime countryside scene|soft green hills, warm sky",
+"Calm and soft":"serene|very calm and peaceful;tranquil|quiet, nothing moving fast;dreamy|soft, like a dream;gentle|soft and kind;cozy|warm and comfortable;airy|light, open and fresh",
+"Happy and bright":"joyful|very happy;playful|fun, like a game;uplifting|makes you feel better;whimsical|magical and a little funny;vibrant|full of life and color;hopeful|good things are coming",
+"Strong and energetic":"bold|strong and confident;dynamic|full of movement;powerful|strong, in control;intense|very strong feeling;triumphant|the feeling of winning;determined|will not give up",
+"Dark and serious":"moody|dark and emotional;melancholic|softly sad;somber|serious and dark;brooding|thinking dark thoughts;ominous|something bad is coming;gritty|rough, dirty, real",
+"Mysterious and magical":"mysterious|secret, unknown;ethereal|light and heavenly, not of this world;enchanted|under a magic spell;surreal|strange, like a dream that makes no sense;eerie|strange and a little scary;otherworldly|from another world",
+"Warm and emotional":"nostalgic|the feeling of old memories;intimate|close and personal;tender|soft and loving;bittersweet|happy and sad at the same time;romantic|full of love;heartfelt|deep and honest feeling",
+"Color and tone":"warm golden tones|orange-yellow, sunny feeling;cool blue tones|cold, calm, night feeling;a pastel palette|light, soft colors;muted earthy tones|brown, beige, olive, natural;high contrast|very bright and very dark parts;desaturated colors|colors almost grey;monochrome|one color only;teal and orange grading|popular movie colors;jewel tones|deep emerald, sapphire, ruby;neon accents|small glowing bright colors;soft color grading|gentle, balanced colors",
+"Mood light":"golden hour light|warm, hopeful, beautiful;blue hour light|calm, quiet, a little sad;soft diffused light|gentle, flattering;harsh midday sun|strong, hot, real;a backlit silhouette|dramatic, mysterious;rim light|the subject glows at the edges;chiaroscuro lighting|strong light and dark, dramatic;volumetric light rays|beams of light through dust or fog;a neon glow|city night, energetic;candlelight|warm, intimate, old;overcast light|flat, soft, serious;moonlight|cold, quiet, mysterious",
+"Texture and finish":"fine film grain|small grain, analog feel;sharp focus|very clear details;shallow depth of field|subject sharp, background blurry;soft bokeh|round soft lights in the background;a matte finish|not shiny;a glossy finish|shiny, polished;hyper-detailed texture|you can see every small detail;hand-painted texture|brush marks visible;halftone dots|old print look;a soft glow and bloom|light gently spreads around bright parts",
+"Unique marks":"freckles across the nose|small brown dots;a small scar above the eyebrow|old healed cut;a beauty mark on the cheek|small dark spot;a tattoo on the forearm|ink drawing on the arm;dimples|small holes in the cheeks when smiling;a gap between the front teeth|space between teeth;one blue eye and one brown eye|two different eye colors;a nose piercing|small ring or stud in the nose",
+"Sheet views":"a front view, a side view and a back view|3 views;a front view, a three-quarter view, a side view and a back view|4 views;a front view and a back view|2 views;front, side and back views plus a close-up of the face|views and a face detail",
+"Expressions list":"happy, sad, angry, surprised, calm and laughing|6 basic feelings;neutral, smiling, worried and determined|4 story feelings;shy, proud, tired and excited|4 more feelings;talking, shouting, whispering and thinking|speaking faces",
+"Sheet backgrounds":"a plain light grey background|neutral, easy to cut out;a plain white background|clean white;a soft beige paper background|warm, like a sketchbook;a plain mid-grey studio backdrop|photo studio look;a solid green screen background|easy to remove later",
+"Who":"a young woman|about 20 to 30 years old;a young man|about 20 to 30 years old;a teenage girl|13 to 19 years old;a teenage boy|13 to 19 years old;a middle-aged woman|about 40 to 55 years old;a middle-aged man|about 40 to 55 years old;an elderly woman|old, about 70 or more;an elderly man|old, about 70 or more;an athlete|a sports person;a boxer|a fighter in boxing;a runner|a person who runs;a student|a person who studies;a chef|a cook in a restaurant;a businessman|a man who works in an office",
+"Body":"a slim build|thin body;an athletic build|fit, sporty body;a muscular build|big, strong muscles;broad shoulders|wide shoulders;tall|high body;short|small body",
+"Face":"freckles|small brown dots on the skin;tanned skin|skin darker from the sun;a sharp jawline|a strong, clear jaw;soft features|a gentle, round face;light stubble|very short beard hair;a full beard|long beard on the whole chin;dimples|small holes in the cheeks when smiling;bright eyes|lively, shining eyes;tired eyes|eyes that look sleepy;a small scar on the cheek|an old healed cut;sweat on the forehead|wet from hard work",
+"Hair":"long straight hair|long hair with no curls;long wavy hair|long hair with soft waves;curly hair|hair with tight curls;a short bob|short hair at chin length;a buzz cut|very short hair cut with a machine;a long braid|hair woven into one long rope;a ponytail|hair tied at the back;a messy bun|hair tied in a loose ball;slicked-back hair|hair combed back, shiny;grey hair|hair with no color, from age",
+"Accessories":"round glasses|glasses with circle frames;large square glasses|big glasses with square frames;sunglasses|dark glasses for the sun;gold earrings|jewelry on the ears;a silver necklace|jewelry around the neck;a wristwatch|a watch on the arm;a baseball cap|a sports hat with a front part;a beanie|a soft knitted hat;a headband|a band around the head;a backpack|a bag on the back;headphones around the neck|headphones resting on the neck;boxing hand wraps|cloth around the hands for boxing",
+"Tops":"a white t-shirt|simple short-sleeve top;an oversized hoodie|big, loose sweatshirt with a hood;a denim jacket|jacket made of jeans material;a leather jacket|jacket made of leather;a linen shirt|light summer shirt;a knitted sweater|warm wool top;a tank top|top with no sleeves;a suit and tie|formal office clothes;a long coat|coat down to the knees;a raincoat|coat that stops rain",
+"Bottoms":"dark jeans|dark blue denim pants;cargo pants|loose pants with big pockets;shorts|short pants;a long skirt|skirt down to the ankles;sweatpants|soft sport pants;tailored trousers|smart, fitted pants",
+"Full outfit":"a summer dress|light dress for warm days;an evening gown|long formal dress;gym clothes|clothes for working out;a school uniform|clothes for school;a chef uniform|white cook clothes;traditional clothing|clothes from a culture;pajamas|clothes for sleeping;a hiking outfit|clothes for walking in nature",
+"Shoes":"white sneakers|white sport shoes;running shoes|shoes made for running;boots|tall, strong shoes;sandals|open summer shoes;barefoot|no shoes;high heels|shoes with a tall heel",
+"Movement":"walking toward the camera|coming closer;walking away from the camera|going farther;running|moving fast on foot;sprinting up the stairs|running very fast up stairs;jumping|in the air;climbing a steep hill|going up a hard slope;dancing|moving to music;stretching|making the body long before sport;lifting weights|training at the gym;doing push-ups|pushing the body up from the floor;punching a heavy bag|boxing training;riding a bicycle|on a bike;skipping rope|jumping over a rope",
+"Still":"standing tall|straight and confident;sitting on a bench|on a long seat outside;sitting on the floor|on the ground;kneeling|resting on the knees;lying on the grass|lying down outside;leaning against a wall|resting the body on a wall;crouching|bent low on the feet;sitting at a desk|at a work table;resting with hands on knees|tired after hard effort",
+"Hands":"holding a coffee cup|a cup in the hand;holding a phone|a phone in the hand;reading a book|eyes on a book;writing in a notebook|using a pen;typing on a laptop|using a computer;carrying a gym bag|a sport bag in the hand;raising a fist|hand closed and held up, feels strong;clapping|hitting the hands together;hands in pockets|relaxed;arms crossed|arms folded on the chest;pointing at the camera|finger aimed at the viewer;wiping sweat from the forehead|after hard work;tying shoelaces|getting ready to go",
+"Looking":"looking at the camera|eye contact with the viewer;looking away|eyes to the side;looking up at the sky|head up;looking down|head down;looking out the window|watching outside;looking over the shoulder|turning the head back;eyes closed|eyes shut",
+"Expression":"smiling softly|small, gentle smile;a confident smile|sure and happy;laughing|happy sound with a big smile;a determined expression|serious, will not give up;a calm expression|peaceful face;a serious expression|no smile, focused;a tired expression|looks sleepy or exhausted;a proud expression|happy about own success;a thoughtful expression|thinking deeply;crying quietly|tears, no sound;shouting|yelling loudly;focused|full attention",
+"Position":"in the center of the frame|in the middle;in the left third of the frame|on the left side, not the center;in the right third of the frame|on the right side, not the center;in the foreground|close to the camera;in the background|far from the camera;small in the distance|very far away;filling the frame|very big in the picture;seen from behind|we see the back;in silhouette|a dark shape against bright light",
+"Indoor":"a cozy bedroom|warm, comfortable room;a modern kitchen|new, clean kitchen;a living room|room with a sofa;an empty gym|gym with nobody inside;a boxing gym|gym with a ring and bags;a small office|room for work;a classroom|room at school;a quiet library|room full of books;a cafe|coffee shop;a recording studio|room for making music;an empty warehouse|big, empty storage building;a locker room|changing room at a gym",
+"City":"a busy city street|many people and cars;a rooftop in a big city|top of a tall building;a neon-lit alley|narrow street with colored signs;a subway platform|underground train station;a train station|place to take a train;a parking garage|building for cars;a bridge at night|bridge with lights;a street market|outdoor shops;a basketball court|place to play basketball;a running track|oval track for running;stadium stairs|long stairs in a sports stadium",
+"Nature":"a misty forest|forest with light fog;a mountain peak|the top of a mountain;a mountain trail|path on a mountain;an empty beach|beach with nobody;a desert|dry sand land;a flower field|land full of flowers;a calm lake|still water;a waterfall|water falling from rocks;a snowy field|land covered in snow;a wheat field|golden grain field;a cliff edge|the end of a high rock;an ocean shore|where the sea meets land",
+"Time":"at sunrise|when the sun comes up;in the early morning|before most people wake up;at midday|around 12 o'clock;in the afternoon|after lunch;at golden hour|warm light just before sunset;at sunset|when the sun goes down;at blue hour|blue light just after sunset;at night|dark time;at midnight|12 o'clock at night",
+"Weather":"under a clear sky|no clouds;under an overcast sky|grey clouds everywhere;in light rain|small rain;in heavy rain|a lot of rain;during a thunderstorm|rain with lightning;in light mist|thin fog;in thick fog|you cannot see far;while snowing|snow falling;in strong wind|air moving hard;after the rain, with wet ground|wet and shiny ground",
+"Season":"in spring|flowers and new leaves;in summer|hot and bright;in autumn|orange leaves falling;in winter|cold, maybe snow",
+"Objects":"a wooden table|table made of wood;an old bicycle|a used bike;a stack of books|books on top of each other;a coffee cup with steam|hot drink;a laptop|small computer;a notebook and pen|for writing;dumbbells on the floor|hand weights;a punching bag|heavy bag for boxing;a guitar|music instrument;potted plants|plants in pots;flowers in a vase|flowers in a glass;a clock on the wall|shows time;a water bottle|bottle for drinking;a trophy|prize cup for winning",
+"Atmosphere":"fairy lights|small string lights;candles|small flame lights;falling leaves|leaves dropping from trees;dust floating in the light|small particles shining in a sunbeam;smoke|grey air from fire;sparks|small flying fire points;raindrops on the window|water on the glass;puddles on the ground|small pools of rainwater;birds in the sky|flying birds;city lights in the distance|lights far away;fast-moving clouds|clouds moving quickly;confetti in the air|small paper pieces for a celebration",
+"Background":"a blurred background|soft, out of focus;a clean simple background|nothing distracting;a brick wall|wall made of red blocks;a concrete wall|grey stone wall;large windows|big glass windows;a crowd in the background|many people far away;an empty street|street with nobody;mountains in the distance|mountains far away;a city skyline|tall buildings against the sky",
+"Light type":"soft natural light|gentle daylight;soft window light|gentle light from a window;warm sunlight|orange, sunny light;harsh midday sun|strong light, hard shadows;golden backlight|warm light from behind the subject;rim light|thin bright line around the edges;neon light|colored light from signs;candlelight|small warm flame light;studio light|professional photo light;moonlight|cold night light;street lamp light|orange light from a street lamp;light rays through a window|visible beams of light;sunlight through fog|soft glowing beams;a single spotlight|one strong light in the dark",
+"Light direction":"from the left|light comes from the left side;from the right|light comes from the right side;from behind|light behind the subject;from above|light from the top;from below|light from the ground, feels scary or strange",
+"Light quality":"soft shadows|gentle shadows;deep shadows|very dark shadows;high contrast|very bright and very dark parts;low contrast|small difference between bright and dark;glowing highlights|bright parts shine;dark and moody|dark, emotional;bright and airy|light, open, fresh",
+"Shot size":"an extreme close-up|only the eyes or a small part;a close-up|the face fills the frame;a medium close-up|head and shoulders;a medium shot|from the waist up;a full body shot|from head to feet;a wide shot|the person and the place around;an extreme wide shot|very small person, big landscape",
+"Angle":"at eye level|camera at eye height, feels neutral;from a low angle|camera looks up, feels powerful;from a high angle|camera looks down, feels small;a top-down view|straight from above;a bird's-eye view|from very high above;a worm's-eye view|from the ground looking up;a side view|seen from the side;over-the-shoulder|from behind one person's shoulder;a Dutch angle|tilted camera, feels tense",
+"Lens":"shallow depth of field|subject sharp, background blurry;deep focus|everything is sharp;a 35mm lens look|natural, like human eyes;an 85mm portrait lens look|flattering face, blurry background;a wide-angle lens|shows a lot, edges stretch;a telephoto lens|from far away, background looks closer;motion blur|moving parts are blurry;sharp focus|very clear;bokeh lights|soft round light circles in the background",
+"Composition":"rule of thirds|subject on a third line, not in the center;symmetrical composition|both sides look the same;leading lines|lines guide the eye to the subject;framed by a doorway|seen through a door;negative space above the subject|empty space, good for text",
+"Mood":"cozy|warm and comfortable;mysterious|secret, unknown;elegant|beautiful and classy;romantic|full of love;playful|fun, like a game;eerie|strange and a little scary;serene|very calm and peaceful;whimsical|magical and funny;melancholic|softly sad;joyful|very happy;futuristic|like the future;motivational|makes you want to act;powerful|strong;hopeful|good things will come;peaceful|quiet and calm;lonely|alone and sad;dramatic|strong emotions;nostalgic|feeling of old memories;intense|very strong and serious;dreamy|soft, like a dream;gritty|rough, dirty, real;victorious|the feeling of winning;calm|relaxed",
+"Colors":"soft pink and peach|romantic soft colors;champagne and ivory|soft luxury colors;deep crimson and black|dark red and black;cyan and magenta|blue and pink sci-fi colors;neon pink and purple|retro night colors;soft sage greens|calm grey-green;bright candy colors|sweet bright colors;chrome and white|clean metal look;red and gold|festive colors;faded film colors|old photo colors;warm orange and teal tones|popular movie colors;warm earthy tones|brown, beige, green;cool blue tones|cold blue colors;muted colors|soft, less strong colors;vibrant colors|very bright, strong colors;pastel colors|light, soft colors;black and gold|dark with gold;monochrome|only one color;desaturated|colors almost grey;film color grading|movie-like color look",
+"Quotes":"GOOD MORNING;HELLO SUMMER;SLOW DOWN;HOME SWEET HOME;OPEN LATE;STAY WILD;DREAM BIG;BE KIND;CELEBRATE;BEYOND;NEVER GIVE UP;KEEP GOING",
+"Font":"in bold white letters|thick white text;in thick black letters|thick black text;in elegant handwritten script|looks like handwriting;in a clean modern font|simple, modern text;in glowing neon letters|text that glows like a sign;in gold letters|shiny gold text;in big block capital letters|large, square letters",
+"Text place":"at the top of the image|top area;at the bottom of the image|bottom area;in the center|middle;on a sign in the scene|text on a real sign;painted on the wall|text on a wall;printed on a t-shirt|text on clothes;in the empty space above the subject|over the person's head",
+"Where":"on the left;on the right;in the foreground|close to the camera;in the background|far from the camera;on the table;on the floor;behind the character;next to the character;in the sky;on the wall",
+"Size":"small;medium-sized;large;in the correct size for the scene|looks natural",
+"Effects":"wet hair and damp clothes|from rain;snow on the hair and shoulders|from snow;wind blowing the hair|from wind;sweat on the skin|from heat or effort;warm light on the skin|orange light on the face;cool blue light on the skin|cold light on the face;neon colors on the face|colored city light;new shadows on the face|shadows match the new light;rim light on the hair|bright edge on the hair;reflections in the glasses|the scene shows in the glasses;a pose that fits the new scene|body changes to fit;clothes that fit the new weather|outfit changes to fit"};
+var V={};for(var g in W)V[g]=W[g].split(";").map(function(x){var p=x.split("|");return [p[0],p[1]||""]});
+var FG={"k.who":["Who"],"k.face":["Face"],"k.hair":["Hair"],"k.body":["Body"],"k.extra":["Unique marks"],"k.outfit":["Tops","Bottoms","Full outfit","Shoes"],"k.acc":["Accessories"],"k.change":["Tops","Full outfit"],"k.outs":["Full outfit","Tops"],"k.views":["Sheet views"],"k.exprs":["Expressions list"],"k.sty":["Photo","Art","More art styles"],"k.bg":["Sheet backgrounds"],"e.bspot":["Placement"],"e.bsize":["Size references"],"e.bsubj":["Keep subject"],"e.btime":["Time","Weather"],"e.bcontact":["Contact changes"],"t.use":["Purpose"],"t.setv":["Set variations"],"t.color":["Color treatment"],"t.genre":["Genre"],"t.sty":["Photo","More photo styles","Art","More art styles","Era and genre looks"],"t.pose":["Pose"],"t.ocut":["Cut"],"t.ofab":["Fabric"],"t.opat":["Pattern"],"t.odet":["Construction details"],"t.acc":["Props","Finish"],"t.skin":["Skin and detail"],"t.gback":["Backdrop"],"t.gcol":["Colors"],"t.gshape":["Shapes and patterns"],"t.gart":["Art movement"],"t.ca":["Contrast A"],"t.cb":["Contrast B"],"t.cf":["Feeling"],"t.ce":["Emphasis"],"t.fin":["Image finish","Texture and finish"],"c.look":["Who","Body","Face","Hair","Accessories"],"c.outfit":["Tops","Bottoms","Full outfit","Shoes"],"t.act":["Movement","Still","Hands","Looking","Expression"],"t.pos":["Position"],"t.place":["Indoor","City","Nature"],"t.time":["Time","Weather","Season"],"t.det":["Objects","Atmosphere","Background"],"t.oname":["Animals","Sea life","Insects","Plants and flowers","Food and drink","Vehicles","Buildings","Fantasy","Objects and symbols"],"t.olook":["Texture","Product colors"],"t.oact":["Subject actions"],"t.ofacing":["Facing"],"t.pname":["Product types"],"t.pcol":["Product colors"],"t.pmat":["Materials","Finish"],"t.pfeat":["Product details"],"t.pshow":["Presentation"],"t.psurf":["Surface"],"t.pfx":["Product effects"],"t.camq":["Phone","Film stock","Digital camera","Retro and lo-fi"],"t.lit":["Mood light","Product light","Light setup","Light type","Light direction","Light quality"],"t.cam":["Product angle","Shot size","Angle","Lens","Composition"],"t.mood":["Calm and soft","Happy and bright","Strong and energetic","Dark and serious","Mysterious and magical","Warm and emotional","Color and tone","Mood","Colors"],"t.txt":["Quotes"],"t.tsty":["Font","Text place"],"e.where":["Where","Size"],"e.eff":["Effects"]};
+var OPS={
+rep:["Replace the background","Replace the background with %.","a rooftop at sunset","a metro train interior;a busy train station;a cozy cafe by the window;a modern office;a sunny park;a rooftop at sunset;a misty forest;a busy city street at night;an empty gym;a boxing gym;a mountain peak;a beach at sunrise;a cozy bedroom;a neon-lit alley;a snowy field;a clean white studio;a plain dark background","the background"],
+add:["Add something","Add %.","a small lamp","a lamp;a bouquet of flowers;a cat;a dog;a bench;an umbrella;a window;a potted plant;a bicycle;fairy lights;a coffee cup;a neon sign;a car;a group of people;birds in the sky;a trophy",""],
+rem:["Remove something","Remove % and fill the area naturally so it matches the surroundings.","the trash can","the trash can;the sign;the car;the people in the background;the clutter;the cables;the text;the watermark;the logo;the person on the left;the person on the right;the shadow;the reflection",""],
+lit:["Change the light","Change the lighting to %.","warm golden hour light","golden hour light;soft overcast light;night with neon lights;blue hour light;harsh midday sun;candlelight;soft window light;a dramatic spotlight;moonlight","the lighting"],
+wth:["Change weather or season","Change the weather and season to %.","heavy rain at night","heavy rain;light snow;thick fog;a thunderstorm;a clear sunny day;autumn with falling leaves;winter with snow on the ground;spring with blooming flowers","the lighting"],
+out:["Change the outfit","Change the character's outfit to %.","a black hoodie and grey sweatpants","a black hoodie and grey sweatpants;a suit and tie;gym clothes;a summer dress;a leather jacket and jeans;a raincoat;a boxing outfit with gloves;a winter coat and scarf","the outfit"],
+pose:["Change the pose","Change the character's pose so they are %.","standing with arms crossed","standing with arms crossed;sitting on the floor;raising both arms in victory;running forward;walking away;looking over the shoulder;kneeling;leaning against the wall;hands on hips","the pose"],
+exp:["Change the expression","Change the character's expression to %.","a confident smile","a confident smile;a determined look;a calm expression;laughing;tired and sweaty;a serious look;eyes closed and peaceful;surprised","the expression"],
+view:["Change the camera view","Show the same scene as %.","a top-down shot","a top-down shot;a low-angle shot;a close-up of the face;a wide shot;a side view;a view from behind;an over-the-shoulder shot;a bird's-eye view","the camera angle;the composition"],
+sty:["Change the art style","Turn the image into %.","an anime illustration","an anime illustration;a watercolor painting;an oil painting;a 3D render;a pencil sketch;a cinematic film still;a black and white photo;a comic book panel;a vintage 35mm film photo","the colors;the lighting"],
+txt:["Edit text","Change the text % and keep the same font, size and color.","\"OLD TEXT\" to \"NEW TEXT\"","",""],
+chr:["Put a character into the scene","Place the character from <image2> into the scene of <image1>, %. Match the light, shadows and colors of the scene.","standing in the center","standing in the center;sitting on the bench;walking on the left side;in the foreground;in the background;next to the person in the image;looking at the camera",""],
+rchar:["Replace a character","Replace % in <image1> with the character from <image2>. Keep the same pose, position and size in the frame, and match the light, shadows and colors of the scene.","the person in the center","the person in the center;the person on the left;the person on the right;the man in the red jacket;the woman in the foreground;the person in the background;the child",""],
+multi:["Add more characters","Place the character from <image2> %, and the character from <image3> %%, into the scene of <image1>. Match the light, shadows and colors of the scene, and keep each character's face and outfit exactly as in their reference image.","standing on the left","standing on the left;standing on the right;sitting at the table;in the foreground;in the background;walking together;facing each other;side by side, looking at the camera",""],
+posecp:["Copy a pose from a reference","Change the pose of the character in <image1> to match the pose of the person in <image2>%. Keep the character's face, hair, outfit and the background from <image1>, and ignore the look of the person in <image2>.","with the head turned slightly left","with the head turned slightly left;with the same hand position;with the same body angle;looking at the camera","the pose"],
+hairage:["Change hair or age","Change the character's %, keeping the same face and identity.","hair to short silver hair","hair to short silver hair;hair to a long braid;hair to a buzz cut;hair to curly red hair;hair to a messy bun;age to about 10 years older;age to about 10 years younger;age to a child version of them;age to an elderly version of them","the hair"],
+sheet:["Make a character sheet","Create a character sheet of the character from <image1>: % on a plain light grey background, all with the same face, hair, outfit and proportions, evenly lit, with no text.","a front view, a side view and a back view","a front view, a side view and a back view;a full body front view and three face close-ups;a front view and a three-quarter view;six expressions in a grid: happy, sad, angry, surprised, calm and laughing",""],
+prodswap:["Replace an object with a product","Replace % in <image1> with the product from <image2>, at the same size and position. Match the light, shadows, reflections and perspective of the scene, and keep the product's shape, colors and label exactly as in <image2>.","the cup in her hand","the cup in her hand;the bottle on the table;the phone in his hand;the bag on her shoulder;the shoes;the item on the shelf",""],
+zoom:["Zoom out or extend the image","Zoom out from <image1> and extend the scene %, continuing the same place, light and style naturally. Keep everything that is already in the image exactly the same.","on all sides","on all sides;to the left and right;above and below;to show the full body;to show the whole room;to show the sky above",""],
+cutout:["Cut out the subject","Keep only % from <image1> and remove everything else. Place it on %%, with clean, sharp edges.","the character","the character;the product;the animal;the person on the left;the main object",""],
+fix:["Restore or improve","Restore and improve the image: %.","remove scratches and noise, sharpen details","remove scratches and noise;sharpen details;colorize it naturally;fix the lighting;fix the blurry face;improve the skin texture naturally;increase the resolution",""]};
+var NOPRE=/^(chr|rchar|multi|posecp|sheet|prodswap|zoom|cutout)$/;
+var WL={chr:"Where the character is and what they do",rchar:"Which person to replace",multi:"Where the first new character (image_2) is",posecp:"Extra detail (optional)",hairage:"What to change",sheet:"Which views",prodswap:"Which object to replace",zoom:"Which direction",cutout:"What to keep"};
+var TIP={rep:"Works best when the subject in image 1 is sharp and not cut off at the frame edge. Pick a new place that fits the camera height, for example eye level for a seated person.",rchar:"Works best when both people are a similar size and pose. Use your own characters, or people who agreed to it.",multi:"Connect 3 images: the scene, then one image for each new character. Use your own characters, or people who agreed to it.",posecp:"Only the pose is copied from image_2, not the person's look.",sheet:"Turn on custom size and pick a wide shape, like 16:9, so all the views fit.",zoom:"Turn on custom size in the workflow and set it larger than image_1, so there is room to extend.",cutout:"Qwen Image Edit may not save real transparency. If it does not, use a plain color and remove it in a photo editor.",prodswap:"Load the product photo in image_2, ideally on a plain background."};
+var TIPS={zoom:"Ask for a wider shape, so there is room to extend.",sheet:"Pick a wide 16:9 shape so all the views fit.",cutout:"Seedream may not save real transparency. If it does not, use a plain color and remove it in a photo editor."};
+var KD={rep:[],chr:["the background","the lighting","the composition"],rchar:["the background","the lighting","the composition","the camera angle"],multi:["the background","the lighting","the composition"],sheet:[],zoom:[],cutout:[],prodswap:["the character's face","the hair","the outfit","the pose","the expression","the background","the lighting"]};
+var KEEP=["the character's face","the hair","the outfit","the pose","the expression","the body shape","the camera angle","the composition","the background","the colors","the lighting"],CHARK=/character|hair|outfit|pose|expression|body/;
+var AR={"1:1":["1536 x 1536","square"],"4:3":["1536 x 1152","landscape"],"3:4":["1152 x 1536","portrait"],"3:2":["1536 x 1024","landscape"],"2:3":["1024 x 1536","portrait"],"4:5":["1280 x 1600","portrait, good for Instagram"],"16:9":["1920 x 1088","wide, like YouTube"],"9:16":["1088 x 1920","vertical, for Shorts and TikTok"]};
+var TH={
+cozy:{n:"Cozy",P:"a cozy bedroom;a small cafe;a quiet library;a mountain cabin with a fireplace;a reading nook by the window;a warm kitchen",T:"on a rainy afternoon;in the evening;on a snowy winter night;in the early morning",M:"cozy and warm;peaceful and quiet;soft and comforting",C:"warm earthy tones;honey and cream colors;soft amber and brown",L:"warm lamp light;candlelight;soft window light;firelight from a fireplace",S:"photo;cinematic film still;watercolor painting;digital illustration",D:"a steaming cup of tea;a knitted blanket;fairy lights;rain drops on the window;a sleeping cat;stacked books",Q:"SLOW MORNINGS;HOME;STAY IN"},
+mystery:{n:"Mystery",P:"a misty forest;an old library at night;a narrow alley in the fog;an abandoned mansion;an empty train platform;a lighthouse on a dark coast",T:"at night;in thick fog;at midnight;during a quiet storm",M:"mysterious;quiet tension;secretive and eerie",C:"cool blue tones;desaturated green tones;deep navy and grey",L:"moonlight;a single street lamp;light through fog;a flashlight beam",S:"cinematic film still;black and white photo;oil painting;photo",D:"an old key;footprints in the dust;a half-open door;a flickering lamp;a torn map",Q:"WHO WAS HERE?;FIND ME;THE LAST DOOR"},
+luxury:{n:"Luxury",P:"a marble hotel lobby;a penthouse with city views;a yacht deck;a jewelry boutique;a private dining room;a perfume atelier",T:"at golden hour;at night;in the evening",M:"elegant and exclusive;calm and refined;rich and glamorous",C:"black and gold;champagne and ivory;deep emerald and gold",L:"soft studio light;warm accent lighting;glowing chandelier light;hard light with crisp reflections",S:"photo;studio photo;cinematic film still;3D render",D:"crystal glasses;silk curtains;polished marble;gold details;fresh white orchids",Q:"TIMELESS;PURE GOLD;ONLY THE BEST"},
+adventure:{n:"Adventure",P:"a mountain peak;a deep jungle;a desert canyon;a glacier field;an ocean cliff;a volcano trail",T:"at sunrise;at golden hour;under dramatic clouds;in strong wind",M:"bold and free;epic and adventurous;wild and alive",C:"vivid natural colors;warm sand and sky blue;deep greens and stone grey",L:"warm sunlight;golden backlight;sunlight through clouds;light rays through the trees",S:"photo;cinematic film still;drone photo;digital illustration",D:"a worn backpack;a rope bridge;birds in the sky;a winding river below;a campfire",Q:"GO FURTHER;EXPLORE MORE;WILD AT HEART"},
+romantic:{n:"Romantic",P:"a rose garden;a Paris street at dusk;a candlelit dinner table;a rooftop at sunset;a beach at twilight;a small bridge over a canal",T:"at sunset;at blue hour;in the evening;in spring",M:"tender and dreamy;romantic and soft;warm and intimate",C:"soft pink and peach;rose and gold;warm pastel tones",L:"golden backlight;candlelight;soft warm light;string lights",S:"photo;cinematic film still;watercolor painting;oil painting",D:"rose petals;two glasses of wine;fairy lights;a bouquet of flowers;a handwritten letter",Q:"ALWAYS YOU;FOREVER;LOVE STORY"},
+playful:{n:"Playful",P:"a candy-colored room;an amusement park;a toy store;a bright playground;a ball pit;a colorful ice cream shop",T:"on a sunny day;in the afternoon;in summer",M:"fun and cheerful;playful and silly;bright and happy",C:"bright candy colors;pastel colors;vibrant colors",L:"bright even light;soft natural light;studio light",S:"3D render;claymation scene;digital illustration;photo",D:"balloons;confetti in the air;giant toys;bubbles floating;sprinkles",Q:"HAVE FUN;YAY!;PLAY TIME"},
+darkfantasy:{n:"Dark fantasy",P:"a ruined castle;a dark forest with glowing mushrooms;a stormy cliff;an ancient crypt;a throne room of black stone;a burning battlefield",T:"at night;during a thunderstorm;under a blood-red moon;in thick fog",M:"ominous and epic;dark and powerful;haunting",C:"deep crimson and black;cold blue and silver;dark purple tones",L:"torchlight;lightning flashes;moonlight;glowing magic light",S:"oil painting;cinematic film still;digital illustration;3D render",D:"glowing runes;floating embers;ravens in the sky;broken armor;twisted dead trees",Q:"RISE;THE DARK AWAKENS;NO KING"},
+nature:{n:"Nature calm",P:"a calm lake;a bamboo forest;a zen garden;a wildflower meadow;a quiet riverbank;a mossy forest floor",T:"in the early morning;in light mist;after the rain, with wet ground;in spring",M:"serene and calm;peaceful;fresh and gentle",C:"soft sage greens;earthy greens and browns;soft morning blues",L:"soft morning light;dappled light through leaves;sunlight through fog;soft natural light",S:"photo;watercolor painting;documentary photo;oil painting",D:"dew drops on leaves;a small wooden boat;floating lotus leaves;butterflies;smooth river stones",Q:"BREATHE;SLOW DOWN;BE STILL"},
+retro:{n:"Retro",P:"a 1980s arcade;a roadside diner;a 1970s living room;a vintage gas station;a roller disco;a record store",T:"at night;in the afternoon;at sunset",M:"nostalgic and fun;retro cool;warm and nostalgic",C:"faded film colors;orange and brown 70s tones;neon pink and purple",L:"neon light;warm tungsten light;flickering TV light",S:"vintage 35mm film photo;pixel art image;flat minimal poster;photo",D:"a jukebox;arcade machines;a vinyl record;a vintage car;checkered floor tiles",Q:"STAY RAD;BACK TO 85;PLAY IT LOUD"},
+scifi:{n:"Sci-fi",P:"a neon megacity;a spaceship interior;a base on the moon;a futuristic laboratory;a floating city above the clouds;an alien desert",T:"at night;under two moons;in the year 3000",M:"sleek and futuristic;full of wonder;cold and high-tech",C:"cyan and magenta;chrome and white;electric blue tones",L:"LED strip light;holographic glow;neon light;cold blue light",S:"3D render;cinematic film still;digital illustration;photo",D:"floating holograms;flying cars;robots in the background;glowing screens;a planet in the sky",Q:"BEYOND;SYSTEM ONLINE;FUTURE NOW"},
+urban:{n:"Urban street",P:"a busy city street;a graffiti alley;a subway platform;a rooftop in a big city;a night market;a basketball court",T:"at night;after the rain, with wet ground;at blue hour;at midday",M:"raw and energetic;cool and confident;gritty",C:"gritty high contrast;teal and orange city tones;muted urban greys",L:"street lamp light;car headlights;neon light;harsh midday sun",S:"street photo;photo;cinematic film still;candid smartphone photo",D:"graffiti on the walls;puddles reflecting lights;steam from a manhole;a skateboard;crowds passing by",Q:"CITY NIGHTS;STREETS ARE MINE;NO SLEEP"},
+minimal:{n:"Minimal",P:"an empty white room;a seamless studio;a flat desert;a foggy beach;a concrete gallery;a single chair in an empty space",T:"at midday;in thick fog;under an overcast sky",M:"quiet and clean;simple and calm;modern and pure",C:"monochrome;white and beige;soft greys",L:"soft even light;soft natural light;a single soft shadow",S:"photo;studio photo;flat minimal poster;3D render",D:"one small plant;a single shadow on the wall;a lone figure in the distance;clean lines",Q:"LESS;SPACE;SIMPLE"},
+festive:{n:"Celebration",P:"a lantern festival;a birthday party;a street parade;a rooftop party;a winter market;a wedding garden",T:"at night;in the evening;in winter;in summer",M:"joyful and lively;festive;happy and warm",C:"red and gold;warm golden tones;bright party colors",L:"string lights;fireworks glow;lantern light;warm party lights",S:"photo;cinematic film still;digital illustration;3D render",D:"fireworks in the sky;paper lanterns;confetti in the air;balloons;sparklers",Q:"CELEBRATE;HAPPY BIRTHDAY;CHEERS"},
+spooky:{n:"Spooky",P:"a foggy graveyard;an abandoned amusement park;a haunted house;a dark pumpkin field;an old attic;a dead forest",T:"at midnight;in thick fog;on a full-moon night;in autumn",M:"spooky and eerie;creepy but fun;unsettling",C:"orange and black;sickly green tones;cold moonlit blues",L:"moonlight;candlelight;a flickering light;light from below",S:"cinematic film still;digital illustration;3D render;photo",D:"carved pumpkins;crows on a fence;cobwebs;floating candles;fallen leaves",Q:"BOO;DO NOT ENTER;TRICK OR TREAT"},
+drama:{n:"Cinematic drama",P:"a rainy street at night;a train platform;a hospital corridor;an empty theater;a car interior at night;a small kitchen at dawn",T:"at night;in heavy rain;at dawn;at blue hour",M:"emotional and heavy;quiet and lonely;tense",C:"desaturated;film color grading;cold blue and warm orange",L:"a single window light;street lamp light;harsh fluorescent light;soft backlight",S:"cinematic film still;photo;black and white photo;documentary photo",D:"rain on the window;an unread letter;a ticking clock;steam from a cup;an empty chair",Q:"STAY;GOODBYE;ONE LAST TIME"},
+motivation:{n:"Motivation",P:"an empty gym;a boxing gym;stadium stairs;a running track;a mountain peak;a rooftop at sunrise",T:"at sunrise;in the early morning;in heavy rain;at golden hour",M:"powerful and determined;hopeful;intense and focused",C:"warm orange and teal tones;black and gold;gritty high contrast",L:"golden backlight;a single spotlight;hard side light;rim light",S:"cinematic film still;photo;sports campaign photo;black and white photo",D:"chalk dust in the air;sweat drops;a water bottle;dumbbells on the floor;light rays through a window",Q:"NEVER GIVE UP;KEEP GOING;START NOW;STRONGER THAN YESTERDAY"}};
+var PR={
+portrait:{n:"Classic portrait",g:"People",s:"char both",d:"Calm studio portrait with classic side light and a soft blurred lens look.",f:{camq:"a Hasselblad medium format camera, with very fine detail and smooth tones",pos:"in the center of the frame",sty:"portrait photo",lit:"Rembrandt lighting from the left, soft shadows",cam:"a medium close-up, at eye level, an 85mm portrait lens look, shallow depth of field",bg:"graphic",gback:"a seamless paper backdrop",gcol:"muted colors",gshape:"",gart:"",fin:"fine film grain",skin:"natural skin imperfections"}},
+beauty:{n:"Beauty close-up",g:"People",s:"char both",d:"Glowing face close-up with soft, even beauty light.",f:{pos:"in the center of the frame",sty:"studio photo",genre:"beauty",lit:"clamshell lighting, soft shadows, glowing highlights",cam:"a close-up, at eye level, an 85mm portrait lens look, sharp focus",bg:"graphic",gback:"a smooth color gradient",gcol:"pastel colors",gshape:"",gart:"",fin:"a glossy magazine finish",skin:"hyper-detailed skin texture with visible pores",pose:"facing the camera"}},
+fashion:{n:"Fashion editorial",g:"People",s:"char both",d:"Bold magazine look with hard light and a graphic background.",f:{camq:"a Hasselblad medium format camera, with very fine detail and smooth tones",sty:"photo",genre:"fashion editorial",lit:"a hard key light, deep shadows, high contrast",cam:"a full body shot, from a low angle, a 35mm lens look",bg:"graphic",gback:"a mixed-media graphic collage",gcol:"vibrant colors",gshape:"overlapping circles, halftone dots",gart:"pop art",fin:"sharp silhouettes",pose:"with one hand on the hip"}},
+street:{n:"Street portrait",g:"People",s:"char both",d:"Natural candid portrait in a real place.",f:{camq:"Kodak Portra 400 film, with warm skin tones and fine grain",sty:"street photo",genre:"street style",bg:"place",lit:"soft natural light, low contrast",cam:"a medium shot, at eye level, a 35mm lens look, shallow depth of field",fin:"fine film grain",skin:"natural skin imperfections"}},
+envport:{n:"Environmental portrait",g:"People",s:"char both",d:"The person in their own place, like a workshop or kitchen, with the place visible.",f:{sty:"documentary photo",bg:"place",lit:"soft window light from the side, soft shadows",cam:"a wide shot, at eye level, a 35mm lens look, deep focus",fin:"fine film grain"}},
+noir:{n:"Film noir",g:"People",s:"char both scene",d:"Black and white crime-movie look with hard shadows.",f:{camq:"Kodak Tri-X 400 black and white film, with strong grain",color:"black-and-white",sty:"cinematic film still",bg:"place",lit:"a single hard light through window blinds, deep shadows, high contrast",cam:"a medium close-up, from a low angle",fin:"fine film grain"}},
+headshot:{n:"Corporate headshot",g:"People",s:"char",d:"Clean, friendly business photo on a plain background.",f:{pos:"in the center of the frame",sty:"studio photo",lit:"soft studio light, soft shadows, bright and airy",cam:"a medium close-up, at eye level, an 85mm portrait lens look",bg:"graphic",gback:"a plain studio wall",gcol:"soft greys",gshape:"",gart:"",fin:"a matte print look",pose:"facing the camera"}},
+sports:{n:"Sports action",g:"People",s:"char both",d:"Powerful action moment, frozen sharp with a blurred background.",f:{sty:"photo",genre:"sports campaign",bg:"place",lit:"harsh midday sun, high contrast",cam:"a full body shot, from a low angle, a telephoto lens, motion blur in the background",fin:"sharp silhouettes",skin:"sweat on the skin"}},
+ecom:{n:"Clean e-commerce",g:"Product",s:"prod",d:"Simple shop photo: product in the center on pure white.",f:{sty:"product photo",genre:"product advertising",lit:"softbox lighting, soft shadows",cam:"a straight-on front view, sharp focus",bg:"graphic",gback:"a seamless paper backdrop",gcol:"pure white",gshape:"",gart:"",fin:"",pshow:"placed in the center",psurf:"on a pure white surface",pfx:"a soft reflection below"}},
+hero:{n:"Hero ad",g:"Product",s:"prod",d:"Dramatic advert: product floating in the dark with glowing edges.",f:{sty:"studio photo",genre:"product advertising",lit:"rim lighting on the edges, a backlit glow, deep shadows",cam:"a hero shot from a low angle, shallow depth of field",bg:"graphic",gback:"a smooth color gradient",gcol:"deep navy and black",gshape:"",gart:"",fin:"soft cinematic bloom",pshow:"floating in mid-air",psurf:"",pfx:"water splashes, dust particles in the light"}},
+flatlay:{n:"Flat lay",g:"Product",s:"prod both",d:"Seen straight from above, neatly arranged on a table.",f:{sty:"product photo",genre:"lifestyle",bg:"place",lit:"soft natural light from above, soft shadows",cam:"a top-down flat lay, deep focus",fin:"",pshow:"arranged in a flat lay",psurf:"on a wooden table"}},
+lifestyle:{n:"Lifestyle product",g:"Product",s:"prod both",d:"The product being used in a real, warm everyday scene.",f:{sty:"photo",genre:"lifestyle",bg:"place",lit:"warm sunlight, soft shadows",cam:"a medium shot, at eye level, shallow depth of field",fin:"fine film grain",pshow:"being used in everyday life",psurf:""}},
+landscape:{n:"Landscape",g:"Scenes",s:"scene other char",d:"Wide nature view with warm light and everything sharp.",f:{sty:"photo",bg:"place",lit:"golden backlight, glowing highlights",cam:"an extreme wide shot, at eye level, a wide-angle lens, deep focus",fin:""}},
+architecture:{n:"Architecture",g:"Scenes",s:"scene other",d:"Buildings with strong lines, shot from low and very sharp.",f:{sty:"photo",bg:"place",lit:"soft natural light, high contrast",cam:"a wide shot, from a low angle, a wide-angle lens, symmetrical composition, deep focus",fin:"a matte print look"}},
+food:{n:"Food photography",g:"Scenes",s:"other prod scene",d:"Tasty close-up with soft light from behind.",f:{sty:"photo",genre:"lifestyle",bg:"place",lit:"soft window light from behind, soft shadows",cam:"a close-up, from a high angle, shallow depth of field",fin:""}},
+macro:{n:"Macro close-up",g:"Scenes",s:"other prod",d:"Very close, tiny details sharp and the background soft.",f:{sty:"photo",lit:"soft natural light, glowing highlights",cam:"a macro close-up, shallow depth of field, bokeh lights",fin:""}},
+drone:{n:"Drone / aerial",g:"Scenes",s:"scene other",d:"High above, looking down on the land.",f:{sty:"drone photo",bg:"place",lit:"warm sunlight from the left, long shadows",cam:"a bird's-eye view, an extreme wide shot, deep focus",fin:""}},
+neon:{n:"Neon night city",g:"Scenes",s:"char both prod other scene",d:"Night city glow with colored signs and soft light circles.",f:{camq:"Cinestill 800T film, with red glow around lights at night",sty:"cinematic film still",bg:"place",lit:"neon light, deep shadows, glowing highlights",cam:"a medium shot, at eye level, shallow depth of field, bokeh lights",fin:"soft cinematic bloom"}},
+documentary:{n:"Documentary",g:"Scenes",s:"char scene other",d:"Honest, real-life moment with natural light.",f:{camq:"a Leica M rangefinder, with rich contrast and classic tones",color:"muted-color",sty:"documentary photo",lit:"soft natural light, low contrast",cam:"a medium shot, at eye level, a 35mm lens look",fin:"fine film grain"}},
+anime:{n:"Anime key visual",g:"Art",s:"char both prod other scene",d:"Bright Japanese animation poster look.",f:{sty:"anime illustration",lit:"warm sunlight, glowing highlights, soft shadows",cam:"a wide shot, from a low angle",fin:"clean graphic novel textures"}},
+watercolor:{n:"Watercolor illustration",g:"Art",s:"char both prod other scene",d:"Soft hand-painted look with gentle colors.",f:{color:"muted-color",sty:"watercolor painting",lit:"soft natural light, low contrast",cam:"a medium shot, at eye level",fin:""}},
+toy3d:{n:"3D toy render",g:"Art",s:"char both prod other scene",d:"Cute 3D look, like a toy or animated movie, on a pastel background.",f:{sty:"3D render",lit:"studio light, soft shadows, bright and airy",cam:"a medium shot, at eye level, shallow depth of field",bg:"graphic",gback:"a smooth color gradient",gcol:"pastel colors",gshape:"",gart:"",fin:"a matte print look"}},
+collage:{n:"Graphic collage poster",g:"Art",s:"char both prod other",d:"Greyscale subject on a loud pop-art collage, like a fashion poster.",f:{color:"greyscale",sty:"mixed-media collage",lit:"chiaroscuro lighting, high contrast",bg:"graphic",gback:"a mixed-media graphic collage",gcol:"vibrant lime green with black and white",gshape:"overlapping circles, bold zebra stripes, halftone dots, topographic contour lines",gart:"retro-futuristic",fin:"paper cut-out edges, clean graphic novel textures"}},
+craft:{n:"Fine craft (silk embroidery)",g:"Art",s:"other char prod",d:"Handmade silk embroidery on linen, every thread visible.",f:{sty:"Suzhou silk embroidery piece",lit:"even soft light, no strong shadows",cam:"a straight-on front view, sharp focus",bg:"graphic",gback:"a light beige linen background with a visible weave",gcol:"low-saturation warm tones",gshape:"",gart:"",fin:"every silk strand distinct and catching the light, free of the fuzzy look of wool or digital printing"}}};
+PR.phone={n:"Phone snapshot",g:"People",s:"char both prod other scene",d:"Casual, real-looking phone photo, like a friend took it.",f:{sty:"candid smartphone photo",lit:"soft natural light",cam:"a medium shot, at eye level",camq:"an iPhone, as a casual everyday snapshot",fin:""}};
+PR.disposable={n:"Disposable camera party",g:"People",s:"char both scene",d:"Flash photo with light leaks, like a 2000s party.",f:{sty:"photo",lit:"harsh direct flash, deep shadows",cam:"a medium shot, at eye level",camq:"a disposable film camera, with direct flash and light leaks",fin:""}};
+var PRG=["People","Product","Scenes","Art"],TF=["color","genre","sty","lit","cam","camq","fin"],HL=[];
+function prOK(k){return PR[k]&&PR[k].s.split(" ").indexOf(S.t.subj)>=0}
+function setPreset(k){var P=PR[k],t=S.t,hl=[];TF.forEach(function(f){if(!(f in P.f))t[f]=""});for(var f in P.f){t[f]=P.f[f];hl.push("t."+f)}return hl}
+function applyPreset(){if(!prOK(S.preset)){toast("Choose a preset first");return}HL=setPreset(S.preset);S.man=null;render();toast("Preset applied: "+PR[S.preset].n);setTimeout(function(){HL=[]},2700)}
+function presetBody(){var av=Object.keys(PR).filter(prOK),P=prOK(S.preset)?PR[S.preset]:null;
+ var h='<p class="hint">Pick a photo or art style and click Apply. It replaces the technical boxes (type of image, light, camera, background, finish) and highlights them. Your subject, place and text stay the same.</p><label for="f-preset">Preset</label><select id="f-preset" data-p="preset"><option value="">Choose a preset...</option>'+PRG.map(function(g){var ks=av.filter(function(k){return PR[k].g===g});return ks.length?'<optgroup label="'+g+'">'+ks.map(function(k){return '<option value="'+k+'"'+(S.preset===k?" selected":"")+'>'+esc(PR[k].n)+'</option>'}).join("")+'</optgroup>':""}).join("")+'</select>';
+ if(P)h+='<p class="hint" style="margin-top:8px"><b>'+esc(P.n)+':</b> '+esc(P.d)+'<br>Light: '+esc(P.f.lit||"-")+'<br>Camera: '+esc(P.f.cam||"keeps yours")+'</p>';
+ return h+'<p style="margin:12px 0 0"><button type="button" class="btn" data-act="preset">Apply preset</button></p>'}
+var KEY="qwb-v3",LIB="qwb-lib",CH="h3b-chars";
+var NEMO={pr:"she",name:"Maya",voice:"",desc:true,look:"a young adult woman with shoulder-length wavy black hair and warm brown eyes",outfit:"a light grey hoodie and blue jeans"};
+/* ===== Site settings (edit these when copying to ShotPrompt) =====
+   startCharacters: the characters in "Load a saved character" for first-time visitors.
+   Use [] for an empty public version, or add your own default characters. */
+var CONFIG={version:"2.2.0",startCharacters:[NEMO]};
+function clone(x){return JSON.parse(JSON.stringify(x))}
+function fresh(){return {step:0,all:false,simple:true,qtab:"uc",qsel:"",model:"qwen",hver:"4.5",k:{src:"scratch",kind:"sheet",keep:"all",who:"",face:"",hair:"",body:"",extra:"",outfit:"",acc:"",change:"",views:"",exprs:"",outs:"",sty:"",bg:"",name:"",nt:true},mode:"t2i",theme:"any",cq:false,ckeep:false,preset:"",pkeep:false,
+ t:{person:1,subj:"char",arp:false,use:"",set:1,setv:"",camq:"",refs:0,rkeep:true,rout:"",oname:"",olook:"",oact:"",ofacing:"",pname:"",pcol:"",pmat:"",pfeat:"",pshow:"",psurf:"",pfx:"",plabel:"",ar:"1:1",color:"",genre:"",sty:"",pose:"",ocut:"",ofab:"",opat:"",odet:"",acc:"",skin:"",bg:"place",gback:"",gcol:"",gshape:"",gart:"",ca:"",cb:"",cf:"",ce:"",fin:"",act:"",pos:"",place:"",time:"",det:"",lit:"",cam:"",mood:"",txt:"",tsty:"",q:true,nt:true,rgba:false},
+ c:{name:"",voice:"",desc:true,look:"",outfit:""},e:{n:1,op:"rep",what:"",where:"",bsrc:"text",bsubj:"",btime:"",blight:"relight",bcontact:"",bedge:true,bfit:"fit",bspot:"",bsize:"",ref:false,keep:KEEP.slice(0,8).filter(function(k){return k!=="the background"}),cf:"keep",eff:""}}}
+function load(k){try{var x=localStorage.getItem(k);return x?JSON.parse(x):null}catch(e){return null}}
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function merge(x){var f=fresh();if(!x)return f;for(var k in f){if(x[k]===undefined)x[k]=f[k];else if(f[k]&&typeof f[k]==="object"&&!Array.isArray(f[k]))for(var j in f[k])if(x[k][j]===undefined)x[k][j]=f[k][j]}return x}
+var S=merge(load(KEY)),lastP=null;if(!AR[S.t.ar])S.t.ar="1:1";if(!S.t._m){S.t.subj=S.t.person==0?"scene":(S.t.subj||"char");S.t._m=1}
+function isP(){return S.t.subj==="char"||S.t.subj==="both"}function isO(){return S.t.subj==="other"}function isPr(){return S.t.subj==="prod"||S.t.subj==="both"}
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")}
+function cut(t){return String(t||"").trim().replace(/[.,\s]+$/,"")}
+function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):s}
+function dot(x){x=cut(x);return x?cap(x)+".":""}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function gp(p){return p.split(".").reduce(function(o,k){return o==null?o:o[k]},S)}
+function sp(p,v){var a=p.split("."),o=S;for(var i=0;i<a.length-1;i++)o=o[a[i]];o[a[a.length-1]]=v}
+function fid(p){return "f-"+p.replace(/\./g,"-")}
+function words(t){return String(t).split(/\s+/).filter(Boolean).length}
+function resetKeep(){var o=OPS[S.e.op],off=o[4].split(";");S.e.keep=KD[S.e.op]?KD[S.e.op].slice():KEEP.slice(0,8).filter(function(k){return off.indexOf(k)<0})}
+
+/* ---------- prompt ---------- */
+function opener(){var t=S.t,m=cut(t.sty).replace(/^(a|an) /i,""),o=[cut(t.color),cut(t.genre),m].filter(Boolean).join(" ");return o?(/^[aeiou]/i.test(o)?"an ":"a ")+o+" of ":""}
+function t2i(){if(ALT())return altT2I();var t=S.t,sd=isSD(),rf=t.refs==1,cr=function(x){return "Create "+((sd?"":opener())||"a new image of ")+x},per=isP(),pr=isPr(),gr=t.bg==="graphic",pre=sd?"":opener(),a=[],tm=cut(t.time);
+ if(per){var el=S.model==="hig"&&cut(S.c.hel)?"@"+cut(S.c.hel).replace(/^@/,"").replace(/\s+/g,"-"):"";var s=rf?"the character from <image1>":el?el+(cut(S.c.look)?", "+cut(S.c.look):""):(cut(S.c.look)||"a person");if(cut(t.pose))s+=", "+cut(t.pose);if(rf){if(!t.rkeep&&cut(t.rout))s+=", now wearing "+cut(t.rout)}else if(cut(S.c.outfit))s+=", wearing "+cut(S.c.outfit);if(cut(t.act))s+=", "+cut(t.act);a.push(dot(rf?cr(s):pre+s));if(cut(t.pos))a.push(dot("The person is "+cut(t.pos)));
+  var o1=[cut(t.ocut),cut(t.ofab)?"made from "+cut(t.ofab):""].filter(Boolean),o2=[cut(t.opat),cut(t.odet)].filter(Boolean),o=o1.length?["is "+o1.join(", ")+(o2.length?", with "+o2.join(" and "):"")]:o2.length?["has "+o2.join(" and ")]:[];
+  if(o.length&&!(rf&&t.rkeep))a.push(dot("The clothing "+o.join(", ")));
+  if(cut(t.acc))a.push(dot("The character is "+cut(t.acc)));if(cut(t.skin))a.push(dot(t.skin))}
+ if(pr){var pd=rf?"the product from <image"+(per?2:1)+">":(cut(t.pname)||"a product")+(cut(t.pcol)?" in "+cut(t.pcol):"")+(cut(t.pmat)?", made of "+cut(t.pmat):"");
+  a.push(dot(per?"The featured product is "+pd:(rf?cr(pd):pre+pd)));
+  if(!rf&&cut(t.pfeat))a.push(dot("The product features "+cut(t.pfeat)));
+  var ps=[cut(t.pshow),cut(t.psurf)].filter(Boolean);if(ps.length)a.push(dot("The product is "+ps.join(", ")));
+  if(cut(t.pfx))a.push(dot("The product is surrounded by "+cut(t.pfx)));
+  var lb=String(t.plabel||"").trim().replace(/"/g,"");if(lb)a.push('The label on the product reads "'+lb+'".')}
+ if(isO()){a.push(dot((rf?cr("the "+(cut(t.oname).replace(/^(a|an|the) /i,"")||"subject")+" from <image1>"):pre+(cut(t.oname)||"a subject")+(cut(t.olook)?", with "+cut(t.olook):""))+(cut(t.oact)?", "+cut(t.oact):"")));
+  var of=[cut(t.pos),cut(t.ofacing)].filter(Boolean);if(of.length)a.push(dot("It is "+of.join(", ")))}
+ else if(!per&&!pr)a.push(dot((rf?cr("the place shown in <image1>"):pre+(cut(t.place)||"a scene"))+(!gr&&tm?", "+tm:"")+", with no people"));
+ if(gr){if(cut(t.gback)||cut(t.gshape)||cut(t.gart)||cut(t.gcol))a.push(dot("The background is "+(cut(t.gback)||"a graphic backdrop")+(cut(t.gcol)?" in "+cut(t.gcol):"")+(cut(t.gshape)?", composed of "+cut(t.gshape):"")+(cut(t.gart)?", in a "+cut(t.gart)+" style":"")))}
+ else if((per||pr||isO())&&cut(t.place))a.push(dot("The scene is set in "+cut(t.place)+(tm?", "+tm:"")));else if((per||pr||isO())&&tm)a.push(dot("The time is "+tm));
+ if(cut(t.det))a.push(dot("The scene includes "+cut(t.det)));
+ if(sd&&opener())a.push(dot("The image is "+opener().replace(/ of $/,"")));
+ if(cut(t.lit))a.push(dot("The lighting is "+cut(t.lit)));
+ if(cut(t.cam))a.push(dot("The shot is "+cut(t.cam)));
+ if(cut(t.camq))a.push(dot("Shot on "+cut(t.camq).replace(/^shot on /i,"")));
+ if(cut(t.mood))a.push(dot("The mood is "+cut(t.mood)));
+ if(cut(t.ca)&&cut(t.cb))a.push(dot("The contrast between "+cut(t.ca)+" and "+cut(t.cb)+" creates "+(cut(t.cf)||"a strong visual tension")+(cut(t.ce)?", emphasizing "+cut(t.ce):"")));
+ if(cut(t.fin))a.push(dot("The image has "+cut(t.fin)));
+ if(cut(t.use))a.push(dot("This image is "+cut(t.use)));
+ var tx=String(t.txt||"").trim().replace(/"/g,"");if(tx)a.push('The text "'+tx+'" is written '+(cut(t.tsty)||"clearly in the image")+".");
+ if(rf){a.push(per?"Keep the character's face, hair and body exactly as in <image1>"+(t.rkeep?", including the outfit":"")+".":pr?"Keep the product's shape, colors and details exactly as in <image1>.":isO()?"Keep the look of the subject exactly as in <image1>.":"Keep the main features of the place from <image1>.");if(per&&pr)a.push("Keep the product's shape, colors and details exactly as in <image2>.")}
+ if(sd){if(+t.set>1)a.unshift(dot("Generate a series of "+t.set+" images"+(cut(t.setv)?", each with "+cut(t.setv):"")+", keeping the same "+(isP()?"character, outfit and lighting":"subject and lighting")+" in all of them"));if(S.model==="seed")a.push(dot("Use a "+t.ar+" "+AR[t.ar][1].split(",")[0]+" format"))}
+ var r=a.join(" ");
+ if(sd){if(t.nt)r+=(tx||String(t.plabel||"").trim())?" No other text, no logos, no watermark.":" No text, no logos, no watermark.";return r}
+ if(t.rgba)r="This is an RGBA format image with transparency. "+r+" The image has an alpha channel and a transparent background.";
+ if(t.q)r+=" Ultra HD, 4K, cinematic composition.";
+ if(t.nt)r+=(tx||String(t.plabel||"").trim())?" No other text, no logos, no watermark, no captions.":" Absolutely no text, no typography, no letters, no words, no numbers, no logos, no watermark, no captions, pure imagery only.";
+ return r}
+function bgSwap(e){var sb=cut(e.bsubj)||"the subject",wh=cut(e.what),tm=cut(e.btime),img=e.bsrc==="img",fit=e.bfit!=="keep",a=[],pl=img?"<image2>":"the new place";
+ var look="the same face, hair, clothing and pose";
+ if(img)a.push("Place "+sb+" from <image1> into the environment shown in <image2>, using <image2> as the full background"+(wh?" ("+wh+(tm?", "+tm:"")+")":tm?" ("+tm+")":"")+". Keep "+sb+" exactly as in <image1>: "+look+(fit?", but resize and move "+sb+" so they fit the new place realistically.":", and the same size and position in the frame."));
+ else a.push("In <image1>, replace the background with "+(wh||"[the new place]")+(tm?", "+tm:"")+". Keep "+sb+" unchanged, with "+look+(fit?", but resize and move "+sb+" so they fit the new place realistically.":", and the same size and position in the frame."));
+ if(fit){a.push(dot("Scale "+sb+" to real adult size compared with the objects in "+pl+(cut(e.bsize)?": "+cut(e.bsize):", such as the doors, seats and handrails")));if(cut(e.bspot))a.push(dot("Place "+sb+" "+cut(e.bspot)))}
+ a.push(e.blight==="keep"?"Keep the lighting on "+sb+" as it is, and light the new background to match it.":"Relight "+sb+" to match the new scene, with the same light direction, color and softness as the background, and matching shadows and reflections.");
+ if(cut(e.bcontact)){var bc=cut(e.bcontact).replace(/^is /,"");a.push(dot(/^(now|standing|sitting|leaning|holding|reflected|kneeling|lying)\b/.test(bc)?cap(sb)+" is "+bc:"Show "+bc))}
+ if(e.bedge)a.push("Keep clean, natural edges around the hair and clothing, with no halo or cut-out look. "+(fit&&img?"Keep the camera height, perspective and lens of <image2>, and fit "+sb+" into that view.":"Match the camera height, perspective, lens and depth of field of the new background to "+sb+"."));
+ return a.join(" ")}
+function bgFields(){var e=S.e;return seg("e.bsrc",[["text","Describe it in words"],["img","Use an environment image (image 2)"]],"Where does the new background come from?")+inp("e.bsubj","What to keep from image 1","e.g. the man in the headphones")+seg("e.bfit",[["fit","Fit to the new place (resize and move)"],["keep","Keep the same size and position"]],"Size and placement")+(e.bfit!=="keep"?inp("e.bspot","Where exactly (optional)","e.g. sitting in the center of one seat, not between two seats")+inp("e.bsize","Size check (optional)","e.g. one person takes up exactly one seat"):'<p class="hint">Only use this when image 1 and the new place have the same camera distance, or the subject may look too big or too small.</p>')+inp("e.btime","Time and weather (optional)","e.g. at night, in light rain")+seg("e.blight",[["relight","Relight the subject to match"],["keep","Keep the subject's light"]],"Lighting")+inp("e.bcontact","Contact changes (optional)","e.g. feet flat on the floor with soft shadows under the shoes")+chk("e.bedge","Add edge and perspective rules (recommended)")}
+function edit(){var e=S.e,o=OPS[e.op],x=cut(e.what)||"["+o[2]+"]";
+ if(e.op==="add"){if(cut(e.where))x+=" "+cut(e.where);if(e.ref)x+=", using the object from <image2>"}
+ if(e.op==="out"&&e.ref)x="the outfit shown in <image2>"+(cut(e.what)?" ("+cut(e.what)+")":"");
+ if(e.op==="posecp")x=cut(e.what)?", "+cut(e.what):"";var y=cut(e.where)||(e.op==="cutout"?"a plain white background":"[where the second character is]");var r=o[1].replace("%%",y).replace("%",x);if(!NOPRE.test(e.op))r="In <image1>, "+r.charAt(0).toLowerCase()+r.slice(1);if(e.op==="rep")r=bgSwap(e);
+ var kp=e.keep.filter(function(k){return e.cf!=="none"||!CHARK.test(k)});
+ if(kp.length)r+=" Keep "+kp.join(", ").replace(/, ([^,]*)$/," and $1")+" exactly the same.";
+ if(e.cf==="keep"&&e.op!=="rep")r+=e.op==="multi"?" Do not change the identity or appearance of the characters.":" Do not change the identity or appearance of the character.";
+ if(e.cf==="aff")r+=" The change also shows on the character: "+(cut(e.eff)||"[how]")+". Keep the character's face and identity the same.";
+ return r}
+function build(){var r=S.mode==="cchar"?charPrompt():S.mode==="edit"?edit():t2i();if(!isQ())r=r.replace(/<image(\d)>/g,"Image $1");if(S.model==="nano"&&S.mode==="edit")r=r.replace(/^In Image 1, /,"Using the provided image, please ");return r}
+
+/* ---------- checks ---------- */
+function checks(p){var w=[],n=words(p);
+ if(S.mode==="cchar"){var k=S.k;if(k.src==="scratch"&&!cut(k.who)&&!cut(k.face)&&!cut(k.hair))w.push("Describe the character: at least who they are, the face or the hair.");if(k.src==="scratch"&&!cut(k.outfit))w.push("Add an outfit so every view shows the same clothes.");if(k.kind==="outfits"&&!cut(k.outs))w.push("List the outfits to show.");if(k.src==="ref"&&k.keep==="face"&&!cut(k.change))w.push("Describe the new outfit.");var L0=lim(),tk0=toks(p);if(tk0>L0.max)w.push("Too long: about "+tk0+" tokens. Shorten the descriptions.");return w}
+ if(ARH[S.model]&&S.mode==="t2i"&&ARH[S.model].indexOf(S.t.ar)<0)w.push("On Higgsfield, "+MN[S.model]+" has no "+S.t.ar+" option. Pick one of: "+ARH[S.model].join(", ")+".");
+ if(S.model==="hig"&&S.mode==="t2i"){var okr=S.hver==="5lite"?["1:1","4:3","3:4","16:9","9:16"]:["1:1","4:3","16:9","3:2","3:4","9:16","2:3"];if(okr.indexOf(S.t.ar)<0)w.push("Seedream "+(S.hver==="5lite"?"5.0 Lite":"4.5")+" on Higgsfield has no "+S.t.ar+" option. Pick one of: "+okr.join(", ")+".")}
+ if(S.mode==="t2i"){var t=S.t;
+  if(!cut(t.sty)&&!cut(t.genre))w.push("Add a style first, like \"a cinematic film still\". Qwen follows the style better when it comes first.");
+  if(isO()&&!cut(t.oname))w.push("Say what the subject is, for example \"a small songbird\".");
+  if(isPr()&&t.refs!=1&&!cut(t.pname))w.push("Say what the product is, for example \"a pair of white running shoes\".");
+  if(isP()&&t.refs!=1&&!cut(S.c.look)&&!(S.model==="hig"&&cut(S.c.hel)))w.push("Describe the character's look. The model does not know names, so it needs the description every time.");
+  if(cut(t.ca)&&!cut(t.cb)||cut(t.cb)&&!cut(t.ca))w.push("The contrast line needs both parts: A and B.");
+  if(isQ()&&t.q&&/phone|selfie|snapshot|disposable|polaroid|point-and-shoot|camcorder|super 8|webcam|security camera|toy plastic/i.test(t.camq||""))w.push("The camera look is a phone or lo-fi camera, but the quality tag says Ultra HD, 4K. Turn off the quality tag in Finishing so the look stays real.");
+  if(words(t.txt)>8)w.push("Short text works best. Try 1 to 8 words.");
+  if(isQ()&&t.rgba&&(cut(t.place)||cut(t.det)))w.push("With a transparent background, the place and background details are usually dropped. You can leave them empty.");
+ }else{var e=S.e;
+  if(!cut(e.what)&&e.op!=="posecp"&&!(e.op==="rep"&&e.bsrc==="img"))w.push("Fill in \"What exactly\" for this edit.");
+  if(e.op==="multi"&&e.n<3)w.push("This edit uses <image2> and <image3>. Connect three images and set \"3 images\" above.");
+  if((/^(chr|rchar|posecp|prodswap)$/.test(e.op)||e.ref||(e.op==="rep"&&e.bsrc==="img"))&&e.n<2)w.push("This edit uses <image2>. Connect a second image and set \"2 images\" above.");
+  if(e.op==="txt"&&cut(e.what)&&(cut(e.what).match(/"/g)||[]).length<4)w.push("Put the old and new text in quotes, like \"SALE\" to \"OPEN\".");
+  if(e.op==="rep"&&e.bfit!=="keep"&&e.keep.some(function(k){return /pose|body shape|camera angle|composition/.test(k)}))w.push("\"Keep the pose / body shape / camera angle / composition\" fights with resizing the subject. Turn those off in Keep the same, because the background swap already keeps the face, hair, clothing and pose.");
+  if(!e.keep.length&&!/^(sheet|zoom|cutout|rep)$/.test(e.op))w.push("Nothing is set to stay the same, so Qwen may change more than you want.");
+  if(e.cf==="aff"&&!cut(e.eff))w.push("Say how the change shows on the character, for example \"wet hair and damp clothes\".")}
+ var L=lim(),tk=toks(p);
+ if(tk>L.max)w.unshift("Too long for the "+L.name+" workflow: about "+tk+" tokens. The text encoder may cut off or ignore text after about "+L.max+" tokens, so the end of your prompt could be lost. Remove details or shorten the word-list phrases.");
+ else if(n>L.hi)w.push("The prompt has "+n+" words. "+L.name+" works best with "+L.lo+" to "+L.hi+" words. Shorter is safer.");
+ else if(n<L.lo)w.push("The prompt has "+n+" words. "+L.name+" works best with "+L.lo+" to "+L.hi+" words. Add more details.");
+ return w}
+function kja(a){return a.length>1?a.slice(0,-1).join(", ")+" and "+a[a.length-1]:a[0]||""}
+var KH={sheet:"The same character from several sides, for keeping them the same in later images and videos.",portrait:"One clean, front-facing picture of the face and shoulders. Good as a main reference image.",expr:"The same face with different feelings. Useful for animation, comics and talking videos.",outfits:"The same person in different clothes, side by side."};
+function kIdent(){var k=S.k;if(k.src==="ref")return "the character from <image1>"+(k.keep==="face"&&cut(k.change)?", now wearing "+cut(k.change):"");var f=[cut(k.face),cut(k.hair),cut(k.body),cut(k.extra)].filter(Boolean);return (cut(k.who)||"a character")+(f.length?" with "+kja(f):"")+(cut(k.outfit)?", wearing "+cut(k.outfit)+(cut(k.acc)?" and "+cut(k.acc):""):cut(k.acc)?", with "+cut(k.acc):"")}
+function kLayout(id){var k=S.k;return k.kind==="portrait"?"a clean identity portrait of "+id+", head and shoulders, facing the camera with a neutral expression":k.kind==="expr"?"an expression sheet of "+id+": a grid of head-and-shoulders close-ups showing "+(cut(k.exprs)||"happy, sad, angry, surprised, calm and laughing"):k.kind==="outfits"?"an outfit sheet of "+id+", shown full body side by side in these outfits: "+(cut(k.outs)||"[the outfits]"):"a character turnaround sheet of "+id+", showing "+(cut(k.views)||"a front view, a side view and a back view")+", full body from head to toe, standing in a neutral pose with the arms slightly away from the body"}
+function charPrompt(){var k=S.k,m=S.model,lay=kLayout(kIdent()),bg=cut(k.bg)||"a plain light grey background",med=cut(k.sty).replace(/^(a|an) /i,""),art=function(x){return (/^[aeiou]/i.test(x)?"an ":"a ")+x},
+ con=k.kind==="portrait"?"":k.kind==="outfits"?"Every figure has the same face, hair and body proportions; only the outfit changes.":k.kind==="expr"?"Every close-up has the same face, hair and colors; only the expression changes.":"Every view has the same face, hair, body proportions, outfit and colors.",
+ rk=k.src==="ref"?(k.keep==="face"?"Keep the face, skin tone, hairstyle and body proportions exactly as in <image1>.":"Keep the face, skin tone, hairstyle, body proportions and outfit exactly as in <image1>."):"",a=[];
+ if(m==="gpt"){var L=["Layout: "+cap(lay)+".","Background and light: "+cap(bg)+", even soft studio lighting."];if(med)L.push("Style: "+cap(med)+".");var cs=[con,rk,k.nt?"No text labels, no logos, no watermark.":""].filter(Boolean);if(cs.length)L.push("Constraints: "+cs.join(" "));return L.join("\n")}
+ if(m==="flux"){a.push(dot(cap(lay)));if(med)a.push(dot(cap(med)));a.push(dot("On "+bg+", with even, soft studio lighting and soft shadows"));if(con)a.push(con);if(rk)a.push(rk);return a.join(" ")}
+ if(isSD()){a.push(dot(cap(lay)));a.push(dot("Set on "+bg+", with even, soft studio lighting and no strong shadows"));if(med)a.push(dot("The image is "+art(med)));if(con)a.push(con);if(rk)a.push(rk);if(m==="seed")a.push(dot("Use a "+S.t.ar+" "+AR[S.t.ar][1].split(",")[0]+" format"));if(k.nt)a.push("No text labels, no logos, no watermark.");return a.join(" ")}
+ a.push(dot(med?art(med)+" of "+lay:lay));a.push(dot("Set on "+bg+", with even, soft studio lighting and no strong shadows"));if(con)a.push(con);if(rk)a.push(rk);
+ if(m==="nano"){if(k.nt)a.push("The image is clean, without any text labels, logos or watermarks.");return a.join(" ")}
+ if(S.t.q)a.push("Ultra HD, 4K, sharp details.");if(k.nt)a.push("Absolutely no text, no labels, no letters, no numbers, no logos, no watermark.");return a.join(" ")}
+function KN(){return S.model==="hig"?"Next: save the finished sheet as an Element in Higgsfield, then type its name in the Character step of \"A new image\".":isQ()?"Next: use the finished sheet as image_1 in \"A new image\" with reference images turned on.":"Next: upload the finished sheet as Image 1 in \"A new image\" with reference images turned on."}
+function charCards(){var k=S.k,h="";
+ h+=card("Character source",seg("k.src",[["scratch","From scratch (describe it)"],["ref","From a reference image"]],"Start from")+(k.src==="ref"?'<div class="map"><span class="lab">'+(isQ()?'Load it in the Image Edit workflow:':'Upload it in '+PN()+':')+'</span><ul><li>'+(isQ()?'<code>image_1</code> → <code>&lt;image1&gt;</code>':'<code>Image 1</code>')+' a clear photo or drawing of the character</li></ul></div>'+seg("k.keep",[["all","Keep the whole look"],["face","Keep the face, change the outfit"]],"What to keep")+(k.keep==="face"?inp("k.change","New outfit","e.g. a denim jacket and black jeans"):""):'<p class="hint">'+(isQ()?'Uses the text-to-image workflow.':'Describe the character in the next steps.')+'</p>'));
+ h+=card("Sheet type",seg("k.kind",[["sheet","Turnaround sheet"],["portrait","Identity portrait"],["expr","Expression sheet"],["outfits","Outfit sheet"]],"What to make")+(k.kind==="sheet"?inp("k.views","Which views","e.g. a front view, a side view and a back view"):k.kind==="expr"?inp("k.exprs","Which expressions","e.g. happy, sad, angry, surprised, calm and laughing"):k.kind==="outfits"?inp("k.outs","Which outfits","e.g. a school uniform, gym clothes and a winter coat"):"")+'<p class="hint">'+esc(KH[k.kind])+'</p>');
+ if(k.src==="scratch")h+=card("Identity",inp("k.name","Name (for saving)","e.g. Alex")+inp("k.who","Who","e.g. a young woman")+inp("k.face","Face and skin","e.g. tanned skin, soft features")+inp("k.hair","Hair","e.g. a long braid")+inp("k.body","Body","e.g. a slim build, tall")+inp("k.extra","Unique marks (optional)","e.g. freckles across the nose")+inp("k.outfit","Outfit","e.g. a white linen shirt and dark jeans",true)+inp("k.acc","Accessories (optional)","e.g. round glasses")+'<p class="hint">Unique marks and one clear outfit make the character easier to keep the same later.</p><p style="margin:12px 0 0"><button type="button" class="btn ghost sm" data-act="ksave">Save to my characters</button></p>');
+ h+=card("Style and background",inp("k.sty","Style","e.g. 2D animation still")+inp("k.bg","Background","e.g. a plain light grey background")+seg("t.ar",Object.keys(AR).map(function(x){return [x,x]}),"Image shape")+'<p class="hint">Turnaround and outfit sheets fit best in 16:9. A portrait fits 3:4 or 1:1.'+(isQ()?' Set the size in the resolution node.':S.model==="seed"?' The shape is written in the prompt.':' Set the shape in your app.')+'</p>');
+ h+=card("Finishing",(S.model==="flux"?'<p class="hint">FLUX.2 has no negative prompt, so "no text" lines are left out.</p>':chk("k.nt","Say no text labels, no logos, no watermark"))+(isQ()?chk("t.q","Add a quality line (Ultra HD, 4K, sharp details)"):"")+'<p class="hint">'+esc(KN())+'</p>');
+ return h}
+function isQ(){return S.model==="qwen"}
+function ALT(){return S.model==="nano"||S.model==="gpt"||S.model==="flux"}
+var MN={nano:"Nano Banana",gpt:"GPT Image",flux:"FLUX.2"};
+var MI={nano:"Google's Nano Banana (Pro, 2, 2.1). It reads plain, story-like sentences best: describe the scene instead of listing keywords, name the shot, lens and light for photo looks, and keep text in quotes.",gpt:"OpenAI's GPT Image (2, 2.5). The prompt is written in labeled parts in this order: scene, subject, details, then constraints. Exact text goes in quotes, and edits say what changes and what stays the same.",flux:"Black Forest Labs' FLUX.2. The prompt follows Subject + Action + Style + Context, with the most important words first. FLUX has no negative prompt, so the builder only describes what you want."};
+var MH={nano:"Nano Banana: the style and shot type open the first sentence, like \"A cinematic film still of...\".",gpt:"GPT Image: the style goes in the Details part of the prompt.",flux:"FLUX.2: the style comes right after the subject and action."};
+var ARH={gpt:["1:1","4:3","3:4","16:9","9:16","3:2","2:3"],flux:["1:1","4:3","3:4","16:9","9:16"]};
+function subjParts(){var t=S.t,rf=t.refs==1,per=isP(),pr=isPr(),o={};
+ if(per){o.s=(rf?"the character from <image1>":(cut(S.c.look)||"a person"))+(cut(t.pose)?", "+cut(t.pose):"");if(rf){if(!t.rkeep&&cut(t.rout))o.s+=", now wearing "+cut(t.rout)}else if(cut(S.c.outfit))o.s+=", wearing "+cut(S.c.outfit)}
+ var pd=rf?"the product from <image"+(per?2:1)+">":(cut(t.pname)||"a product")+(cut(t.pcol)?" in "+cut(t.pcol):"")+(cut(t.pmat)?", made of "+cut(t.pmat):"");
+ if(pr){if(per)o.p=pd;else o.s=pd}
+ if(isO())o.s=rf?"the "+(cut(t.oname).replace(/^(a|an|the) /i,"")||"subject")+" from <image1>":(cut(t.oname)||"a subject")+(cut(t.olook)?", with "+cut(t.olook):"");
+ if(!per&&!pr&&!isO())o.s=rf?"the place shown in <image1>":(cut(t.place)||"a scene")+", with no people";
+ var d=[];if(per){var c1=[cut(t.ocut),cut(t.ofab)?"made from "+cut(t.ofab):""].filter(Boolean),c2=[cut(t.opat),cut(t.odet)].filter(Boolean);if(!(rf&&t.rkeep)&&(c1.length||c2.length))d.push(c1.length?"the clothing is "+c1.join(", ")+(c2.length?", with "+c2.join(" and "):""):"the clothing has "+c2.join(" and "));if(cut(t.acc))d.push(cut(t.acc));if(cut(t.skin))d.push(cut(t.skin))}
+ if(pr){if(!rf&&cut(t.pfeat))d.push("the product features "+cut(t.pfeat));var ps=[cut(t.pshow),cut(t.psurf)].filter(Boolean);if(ps.length)d.push("the product is "+ps.join(", "));if(cut(t.pfx))d.push("surrounded by "+cut(t.pfx))}
+ if(cut(t.pos))d.push((per?"the person is ":"it is ")+cut(t.pos));if(isO()&&cut(t.ofacing))d.push(cut(t.ofacing));
+ o.d=d;o.act=cut(t.act)&&per?cut(t.act):isO()&&cut(t.oact)?cut(t.oact):"";
+ var sc=t.subj==="scene",tm=cut(t.time);o.set="";if(t.bg==="graphic"){if(cut(t.gback)||cut(t.gshape)||cut(t.gart)||cut(t.gcol))o.set="the background is "+(cut(t.gback)||"a graphic backdrop")+(cut(t.gcol)?" in "+cut(t.gcol):"")+(cut(t.gshape)?", composed of "+cut(t.gshape):"")+(cut(t.gart)?", in a "+cut(t.gart)+" style":"")}else if(!sc&&cut(t.place))o.set=cut(t.place)+(tm?", "+tm:"");else if(tm)o.set=tm;
+ o.keep=rf?(per?"Keep the character's face, hair and body exactly as in <image1>"+(t.rkeep?", including the outfit":"")+".":pr?"Keep the product's shape, colors and details exactly as in <image1>.":isO()?"Keep the look of the subject exactly as in <image1>.":"Keep the main features of the place from <image1>."):"";
+ if(rf&&per&&pr)o.keep+=" Keep the product's shape, colors and details exactly as in <image2>.";
+ var sn=opener().replace(/ of $/,"");o.sty=sn;o.op=opener();return o}
+function altT2I(){var t=S.t,m=S.model,o=subjParts(),a=[],tx=String(t.txt||"").trim().replace(/"/g,""),lb=String(t.plabel||"").trim().replace(/"/g,""),ct=cut(t.ca)&&cut(t.cb)?"the contrast between "+cut(t.ca)+" and "+cut(t.cb)+" creates "+(cut(t.cf)||"a strong visual tension")+(cut(t.ce)?", emphasizing "+cut(t.ce):""):"",arl=t.arp&&m!=="flux"?"Use a "+t.ar+" "+AR[t.ar][1].split(",")[0]+" format.":"";
+ if(m==="gpt"){var L=[];var sc=[o.set,cut(t.det)].filter(Boolean);if(sc.length)L.push("Scene: "+cap(sc.join(". "))+".");
+  L.push("Subject: "+cap([o.s+(o.act?", "+o.act:"")].concat(o.p?["the featured product is "+o.p]:[]).concat(o.d).join(". "))+".");
+  var dt=[o.sty?cap(o.sty):"",cut(t.camq)?"shot on "+cut(t.camq):"",cut(t.lit)?"lighting: "+cut(t.lit):"",cut(t.cam)?"camera: "+cut(t.cam):"",cut(t.mood)?"mood: "+cut(t.mood):"",cut(t.fin)].filter(Boolean);if(dt.length)L.push("Details: "+dt.join("; ")+".");
+  if(ct)L.push("Idea: "+cap(ct)+".");if(cut(t.use))L.push("Purpose: "+cap(cut(t.use))+".");
+  if(tx)L.push('Text: exactly "'+tx+'", '+(cut(t.tsty)||"clear and legible")+".");if(lb)L.push('Label text on the product: exactly "'+lb+'".');
+  var cs=[];if(o.keep)cs.push(o.keep);if(arl)cs.push(arl);if(t.nt)cs.push(tx||lb?"No other text, no logos, no watermark.":"No text, no logos, no watermark.");if(cs.length)L.push("Constraints: "+cs.join(" "));
+  return L.join("\n")}
+ if(m==="flux"){a.push(dot(cap(o.s+(o.act?", "+o.act:""))));var st=[o.sty?cap(o.sty):"",cut(t.camq)?"shot on "+cut(t.camq):"",cut(t.fin)].filter(Boolean);if(st.length)a.push(dot(st.join(", ")));
+  if(o.set)a.push(dot(t.bg==="graphic"?o.set:"Set in "+o.set));if(o.p)a.push(dot("The featured product is "+o.p));o.d.forEach(function(x){a.push(dot(x))});if(cut(t.det))a.push(dot("The scene includes "+cut(t.det)));
+  var lc=[cut(t.lit),cut(t.cam)].filter(Boolean);if(lc.length)a.push(dot(lc.join(", ")));if(cut(t.mood))a.push(dot(cut(t.mood)+" mood"));if(ct)a.push(dot(ct));if(cut(t.use))a.push(dot("Made "+cut(t.use)));
+  if(tx)a.push('The text "'+tx+'" is written '+(cut(t.tsty)||"clearly in the image")+".");if(lb)a.push('The product label reads "'+lb+'".');if(o.keep)a.push(o.keep);return a.join(" ")}
+ a.push(dot((o.op?o.op:"")+o.s+(o.act?", "+o.act:"")+(o.set&&t.bg!=="graphic"?", set in "+o.set:"")));if(o.set&&t.bg==="graphic")a.push(dot(o.set));if(o.p)a.push(dot("The featured product is "+o.p));o.d.forEach(function(x){a.push(dot(x))});
+ if(cut(t.det))a.push(dot("The scene includes "+cut(t.det)));
+ if(cut(t.lit))a.push(dot("The scene is illuminated by "+cut(t.lit)+(cut(t.mood)?", creating a "+cut(t.mood)+" atmosphere":"")));else if(cut(t.mood))a.push(dot("The mood is "+cut(t.mood)));
+ var cq=[cut(t.cam)?"Captured as "+cut(t.cam):"",cut(t.camq)?"shot on "+cut(t.camq):""].filter(Boolean);if(cq.length)a.push(dot(cq.join(", ")));
+ if(cut(t.fin))a.push(dot("The image has "+cut(t.fin)));if(ct)a.push(dot(ct));if(cut(t.use))a.push(dot("This image is "+cut(t.use)));
+ if(tx)a.push('The text "'+tx+'" appears '+(cut(t.tsty)||"clearly in the image")+".");if(lb)a.push('The label on the product reads "'+lb+'".');if(o.keep)a.push(o.keep);if(arl)a.push(arl);
+ if(t.nt)a.push(tx||lb?"The image has no other text or logos.":"The image is clean, without any added text, logos or watermarks.");return a.join(" ")}
+function altFin(){var m=S.model;return (m!=="flux"?chk("t.nt","Say no text, no logos, no watermark")+chk("t.arp","Also write the shape in the prompt (for chat apps like "+(m==="gpt"?"ChatGPT":"Gemini")+")"):'<p class="hint">FLUX.2 has no negative prompt, so lines like "no text" are left out. To avoid something, describe the clean result you want instead.</p>')+'<p class="hint">Quality tags like 4K are not needed. Set the size and quality in your app.</p>'}
+function isSD(){return S.model==="seed"||S.model==="hig"}
+function PN(){return {hig:"Higgsfield",seed:"Dola",nano:"Gemini or Higgsfield",gpt:"ChatGPT or Higgsfield",flux:"Higgsfield"}[S.model]||"Dola"}
+function lim(){if(S.mode==="cchar")return ALT()?LIM[S.model]:isSD()?LIM.seed:LIM.t2i;if(ALT())return S.mode==="edit"?LIM.aedit:LIM[S.model];if(isSD())return S.mode==="edit"?LIM.sedit:LIM.seed;return S.mode==="t2i"&&S.t.refs==1?LIM.ref:LIM[S.mode]}
+var LIM={nano:{name:"Nano Banana",lo:25,hi:250,max:1000},gpt:{name:"GPT Image",lo:20,hi:250,max:1000},flux:{name:"FLUX.2",lo:15,hi:100,max:500},aedit:{name:"Edit",lo:8,hi:200,max:800},seed:{name:"Seedream",lo:20,hi:150,max:800},sedit:{name:"Seedream edit",lo:8,hi:200,max:800},ref:{name:"Image Edit (new image from references)",lo:30,hi:200,max:512},t2i:{name:"Text to image",lo:50,hi:300,max:512},edit:{name:"Image Edit",lo:8,hi:180,max:320}};
+function toks(p){return Math.ceil(String(p).length/4)}
+
+/* ---------- form ---------- */
+function inp(p,label,ph,ta){var v=gp(p),id=fid(p);v=v==null?"":v;
+ var hw=groupsFor(p,1);return (hw?'<div class="lrow"><label for="'+id+'">'+label+'</label><button type="button" class="wbtn" data-wsheet="'+p+'" aria-label="Words for '+esc(String(label).replace(/<[^>]+>/g,""))+'">Words</button></div>':'<label for="'+id+'">'+label+'</label>')+'<div class="fw">'+(ta?'<textarea'+(HL.indexOf(p)>=0?' class="flash"':'')+' id="'+id+'" data-p="'+p+'" placeholder="'+esc(ph||" ")+'">'+esc(v)+'</textarea>':'<input'+(HL.indexOf(p)>=0?' class="flash"':'')+' id="'+id+'" data-p="'+p+'" value="'+esc(v)+'" placeholder="'+esc(ph||" ")+'">')+'<button type="button" class="clr" data-clr="'+p+'" aria-label="Clear this box" title="Clear this box">×</button></div>'}
+function chk(p,label){var id=fid(p);return '<label class="chk" for="'+id+'"><input type="checkbox" id="'+id+'" data-p="'+p+'"'+(gp(p)?" checked":"")+'>'+label+'</label>'}
+function seg(p,opts,label){var v=String(gp(p));return '<span class="lab">'+label+'</span><div class="seg" role="group" aria-label="'+esc(label)+'">'+opts.map(function(o){return '<button type="button" data-seg="'+p+'" data-v="'+o[0]+'" aria-pressed="'+(v===String(o[0]))+'">'+o[1]+'</button>'}).join("")+'</div>'}
+function refBlock(){var t=S.t,sl=t.subj==="both"?["your character","your product"]:t.subj==="prod"?["your product"]:t.subj==="other"?["your subject"]:t.subj==="scene"?["the place"]:["your character"];
+ var h=seg("t.refs",[[0,"No"],[1,"Yes, I will use reference images"]],"Do you have reference images for the subject?");
+ if(t.refs==1){var sd=!isQ();h+='<div class="map"><span class="lab">'+(sd?'Upload them in '+PN()+' in this order:':'Load them in the Image Edit workflow in this order:')+'</span><ul>'+sl.map(function(x,i){return '<li>'+(sd?'<code>Image '+(i+1)+'</code> ':'<code>image_'+(i+1)+'</code> → <code>&lt;image'+(i+1)+'&gt;</code> ')+x+'</li>'}).join("")+'</ul></div>';
+  if(isP())h+=chk("t.rkeep","Keep the outfit from the reference image")+(t.rkeep?"":inp("t.rout","New outfit","e.g. a black hoodie and grey sweatpants"));
+  h+='<p class="hint">The look comes from the image, so you don\'t need to describe it. '+(sd?'The shape you picked is written in the prompt.':'The result keeps the size of image_1. Crop image_1 to the shape you want, or turn on custom size in the workflow.')+'</p>'}
+ return h}
+var REQ=["What are you making?","Character","Subject","Product","Uploads","The edit","Character source","Sheet type","Identity"];
+function card(title,body){return '\u0001'+title+'\u0002'+body+'\u0003'}
+function goTop(){var f=$("form");try{if(f.getBoundingClientRect().top<0)f.scrollIntoView({behavior:"smooth",block:"start"})}catch(e){}}
+function chars(){return load(CH)||clone(CONFIG.startCharacters)}
+function render(){var h="",t=S.t,e=S.e;
+ var SD=!isQ();
+ h+=card("What are you making?",seg("simple",[["true","Simple"],["false","Advanced"]],"Mode")+'<p class="hint mbhint">'+(S.simple?"Simple shows the main steps. Advanced adds outfit design, props, skin, image finish, photo quality, genre and the contrast line.":"Advanced shows every step and option.")+'</p>'+seg("model",[["qwen","Qwen Image 2.1 (ComfyUI)"],["seed","Dola AI (Seedream)"],["hig","Higgsfield (Seedream 4.5 / 5.0 Lite)"],["nano","Nano Banana"],["gpt","GPT Image"],["flux","FLUX.2"]],"Model")+(S.model==="hig"?seg("hver",[["4.5","Seedream 4.5"],["5lite","Seedream 5.0 Lite"]],"Higgsfield model")+'<p class="hint">Set the aspect ratio, image count and quality (basic up to 4K, high up to about 6K) in Higgsfield\'s own settings, not in the prompt.</p>':"")+'<p class="hint mbhint">'+(ALT()?MI[S.model]:SD?(S.model==="hig"?"Higgsfield runs ByteDance's Seedream 4.5 and 5.0 Lite. ":"Dola makes images with ByteDance's Seedream model. ")+"The prompt follows Seedream's rules: plain sentences, the subject first, then the place, style and light, with images called Image 1, Image 2.":"Qwen Image 2.1 in ComfyUI. The prompt follows Qwen's rules: the style first, then long, detailed sentences, with images called &lt;image1&gt;, &lt;image2&gt;.")+'</p>'+seg("mode",[["t2i","A new image"],["edit","Edit an image"],["cchar","Create a character"]],"Workflow")+'<p class="hint">'+(SD?(S.mode==="t2i"?(t.refs==1?"Upload your reference images in "+PN()+" first, in the order shown below, then paste the prompt.":"Paste the prompt into "+PN()+"'s image creation."):"Upload your images in "+PN()+" in the order shown in the next step, then paste the prompt."):(S.mode==="t2i"?(t.refs==1?"<b>Use the Image Edit workflow for this prompt.</b> The text-to-image workflow cannot read reference images, so this prompt is written for Image Edit.":"Uses the Qwen Image 2.1 text-to-image workflow."):"Uses the Qwen Image 2.1 Image Edit workflow."))+'</p>'+
+  (S.mode==="t2i"?seg("t.subj",[["char","Character"],["other","Animal, plant or other"],["prod","Product"],["both","Character with product"],["scene","Scene only"]],"Subject")+seg("t.ar",Object.keys(AR).map(function(k){return [k,k]}),"Image shape")+'<p class="hint">'+esc(t.ar)+' is '+esc(AR[t.ar][1])+'. '+(SD?(ALT()?'Pick <b>'+esc(t.ar)+'</b> in your app\'s aspect ratio setting'+(t.arp&&S.model!=="flux"?' (it is also written in the prompt).':'. The shape is not part of the prompt.'):S.model==="hig"?'Pick <b>'+esc(t.ar)+'</b> in Higgsfield\'s aspect ratio setting. The shape is not part of the prompt.':'The shape is written into the prompt, because Dola has no size box.'):'Set <b>'+esc(AR[t.ar][0])+'</b> in the resolution node. The shape is not part of the prompt.')+'</p>':""));
+ if(S.mode==="t2i"){
+  h+=card("Start from a preset",presetBody());
+  h+=card("Concept maker",quickBody()+'<span class="lab">Random concept</span><p class="hint">Click to fill the boxes with a random idea, then change anything you like. Pick a theme or leave it on "Any theme" for a surprise. It also makes up a new character look and clothing, unless you tick "Keep the character I filled in". Your subject choice stays the same.</p><label for="f-theme">Theme</label><select id="f-theme" data-p="theme"><option value="any">Any theme (surprise me)</option>'+Object.keys(TH).map(function(k){return '<option value="'+k+'"'+(S.theme===k?" selected":"")+'>'+esc(TH[k].n)+'</option>'}).join("")+'</select>'+chk("cq","Add a short text that fits the theme")+(prOK(S.preset)?chk("pkeep","Keep the preset look ("+esc(PR[S.preset].n)+") when making concepts"):"")+(isP()&&S.t.refs!=1?chk("ckeep","Keep the character I filled in (don't change the look and clothing)"):"")+'<p style="margin:12px 0 0"><button type="button" class="btn" data-act="concept">Make a concept</button> <span class="hint" id="cnote"></span></p><p class="hint">'+fmtN(ccount())+' possible combinations.</p>');
+  h+=card("Uploads",refBlock());
+  if(isP()&&t.refs!=1)h+=card("Character",(S.model==="hig"?inp("c.hel","Higgsfield Element name (optional)","e.g. maya")+'<p class="hint">If you saved this character as an Element in Higgsfield, type its name. The prompt uses @name and Higgsfield adds the picture, so the look box can stay empty.</p>':"")+'<div class="inline" style="margin-top:6px"><select data-cload="1" aria-label="Load a saved character"><option value="">Load a saved character...</option>'+chars().map(function(x,i){return '<option value="'+i+'">'+esc(x.name)+'</option>'}).join("")+'</select><button type="button" class="btn ghost sm" data-csave="1">Save character</button></div>'+
+   inp("c.name","Name (for saving only, not used in the prompt)","e.g. Maya")+inp("c.look","Look: who, face, hair, accessories","e.g. a young woman with wavy black hair and warm brown eyes",true)+inp("c.outfit","Clothing","e.g. a white linen shirt and dark jeans",true)+'<p class="hint">Qwen does not remember characters. Use the same look and clothing words every time to keep them consistent. Saved characters are shared with the video builder when both run on the same site.</p>');
+  h+=card("Type of image",(S.simple?"":inp("t.color","Color treatment (optional)","e.g. greyscale")+inp("t.genre","Genre (optional)","e.g. sports campaign"))+inp("t.sty","Medium","e.g. cinematic film still")+(ALT()?'<p class="hint">'+esc(MH[S.model])+'</p>':SD?'<p class="hint">Seedream reads the subject first, so this style goes after the subject and place, like "The image is a greyscale sports campaign photo."</p>':'<p class="hint">These three make the opening, like "A greyscale sports campaign photo of...". Qwen follows the first words most.</p>'));
+  if(isO())h+=card("Subject",inp("t.oname","What the subject is","e.g. a small songbird")+inp("t.olook","Its look: colors and texture","e.g. glossy feathers in cream-white and olive green")+inp("t.oact","What it is doing","e.g. perched on a branch")+inp("t.pos","Where it is in the frame","e.g. from the center to the right of the frame")+inp("t.ofacing","Which way it faces","e.g. facing left")+'<p class="hint">Word lists include animals, sea life, insects, plants, food, vehicles, buildings, fantasy creatures and symbols.</p>');
+  if(isPr())h+=(t.refs==1?"":card("Product",inp("t.pname","What the product is","e.g. a pair of white running shoes")+inp("t.pcol","Colors","e.g. matte black")+inp("t.pmat","Material and finish","e.g. breathable mesh fabric, matte")+inp("t.pfeat","Details","e.g. visible stitching, a textured rubber sole")+inp("t.plabel","Label text on the product (optional)","e.g. RUN")+'<p class="hint">Qwen can write short label text. Use a made-up brand, not a real one.</p>'))+card("Product presentation",inp("t.pshow","How it is shown","e.g. floating in mid-air")+inp("t.psurf","Surface","e.g. on wet black rocks")+inp("t.pfx","Effects around it","e.g. water splashes, soft smoke"));
+  if(isP()){h+=card("Pose and action",inp("t.pose","Pose and head angle","e.g. in profile, with the chin tilted upward")+inp("t.act","What the character does, and their face","e.g. wrapping her hands, with a determined expression",true)+inp("t.pos","Where the character is in the frame","e.g. in the left third of the frame"));
+   h+=card("Outfit design",'<p class="hint">Optional. Adds detail to the clothing above.</p>'+inp("t.ocut","Cut and shape","e.g. oversized, structured")+inp("t.ofab","Fabric","e.g. heavyweight cotton")+inp("t.opat","Pattern","e.g. a camouflage pattern")+inp("t.odet","Construction details","e.g. pleats, cargo straps and buckles"));
+   h+=card("Accessories and props",inp("t.acc","What the character holds or wears, with material and finish","e.g. holding matte black boxing gloves with brushed-metal details",true));
+   h+=card("Skin and detail",inp("t.skin","How the skin and small details look","e.g. hyper-detailed skin texture, sweat on the skin"))}
+  h+=card("Scene and background",seg("t.bg",[["place","A real place"],["graphic","Studio or graphic background"]],"Background type")+
+   (t.bg==="graphic"?(t.subj!=="scene"?"":inp("t.place","Main subject","e.g. a pair of white running shoes"))+inp("t.gback","Backdrop","e.g. a mixed-media graphic collage")+inp("t.gcol","Background colors","e.g. vibrant colors")+inp("t.gshape","Shapes and patterns","e.g. overlapping circles, halftone dots")+inp("t.gart","Art movement","e.g. pop art"):inp("t.place","Place","e.g. a rooftop in a big city")+inp("t.time","Time and weather","e.g. at golden hour, in light mist"))+
+   inp("t.det","Details and objects","e.g. dust floating in the light",true));
+  h+=card("Light and camera",inp("t.lit","Lighting","e.g. Rembrandt lighting from the left, deep shadows")+inp("t.cam","Camera","e.g. a medium shot, from a low angle, shallow depth of field")+(S.simple?"":inp("t.camq","Photo quality: camera or film","e.g. Kodak Portra 400 film, with warm skin tones and fine grain")+'<p class="hint">Makes the photo look like it was taken with a phone, a film camera or a pro camera. Best with photo styles, not paintings or 3D.</p>'));
+  h+=card("Mood and idea",inp("t.mood","Mood and colors","e.g. hopeful and powerful, warm orange and teal tones")+(S.simple?"":inp("t.use","What the image is for (optional)","e.g. for a social media post"))+(S.simple?"":'<span class="lab">Contrast line (optional): "The contrast between A and B creates a feeling, emphasizing something."</span>'+inp("t.ca","A","e.g. her calm face")+inp("t.cb","B","e.g. the storm behind her")+inp("t.cf","Feeling it creates","e.g. a feeling of quiet strength")+inp("t.ce","What it emphasizes","e.g. the character's determination")));
+  h+=card("Image finish",inp("t.fin","Surface and texture of the whole image","e.g. fine film grain, sharp silhouettes"));
+  h+=card("Text in the image",inp("t.txt","Exact words (optional)","e.g. GOOD MORNING")+inp("t.tsty","Text style and place","e.g. in bold white letters at the top of the image")+'<p class="hint">Both models draw short text well. Put only the exact words here. Leave it empty for no text.</p>');
+  h+=card("Finishing",ALT()?altFin():SD?seg("t.set",[[1,"1 image"],[2,"2 images"],[3,"3 images"],[4,"4 images"]],"How many images (Seedream can make a matching set)")+(+t.set>1?inp("t.setv","What changes between the images","e.g. a different camera angle and pose"):"")+chk("t.nt","Say no text, no logos, no watermark")+'<p class="hint">Seedream does not need quality tags like 4K. The size comes from '+PN()+'.'+(S.model==="hig"?' For simple variations of one prompt, Higgsfield\'s image count setting is easier than a series.':'')+'</p>':chk("t.q","Add the quality tag (Ultra HD, 4K, cinematic composition)")+chk("t.nt","Say no text, no logos, no watermark")+chk("t.rgba","Transparent background (save as PNG)"));
+ }else if(S.mode==="cchar"){h+=charCards()}else{var o=OPS[e.op];
+  var tg=function(i){return SD?'<code>Image '+i+'</code>':'<code>image_'+i+'</code> → <code>&lt;image'+i+'&gt;</code>'};h+=card("Uploads",seg("e.n",[[1,"1 image"],[2,"2 images"],[3,"3 images"]],"How many")+'<div class="map"><span class="lab">'+(SD?'Upload in '+PN()+' in this order:':'Connect in this order and the tags will match:')+'</span><ul><li>'+tg(1)+' the image you edit</li>'+(e.n>=2?'<li>'+tg(2)+' a reference (object, outfit or character)</li>':'')+(e.n>=3?'<li>'+tg(3)+' another reference</li>':'')+'</ul></div><p class="hint">'+(SD?(S.model==="hig"?'The result follows the aspect ratio you pick in Higgsfield.':'Dola keeps the shape of Image 1 unless you ask for another shape.'):'The result keeps the size of image_1.')+'</p>');
+  h+=card("The edit",'<label for="f-e-op">What do you want to do?</label><select id="f-e-op" data-p="e.op">'+Object.keys(OPS).map(function(k){return '<option value="'+k+'"'+(k===e.op?" selected":"")+'>'+esc(OPS[k][0])+'</option>'}).join("")+'</select><p class="hint">Do one main change per edit. For more changes, run the edit again on the result.</p>'+((SD&&TIPS[e.op]||TIP[e.op])?'<p class="hint"><b>Tip:</b> '+esc(SD&&TIPS[e.op]||TIP[e.op])+'</p>':'')+
+   inp("e.what",(e.op==="rep"?(e.bsrc==="img"?"Extra detail about the new place (optional)":"New background"):(WL[e.op]||"What exactly")),"e.g. "+o[2])+
+   (e.op==="rep"?bgFields():e.op==="add"?inp("e.where","Where and how big","e.g. on the table, small"):e.op==="multi"?inp("e.where","Where the second new character (image_3) is","e.g. standing on the right, looking at the first one"):e.op==="cutout"?inp("e.where","New background","e.g. a transparent background"):"")+
+   (e.op==="add"||e.op==="out"?chk("e.ref","Take it from &lt;image2&gt;"):""));
+  h+=card("Keep the same",'<p class="hint">Naming what stays the same stops the face and clothes from changing. Tap to turn on or off.</p><div class="seg" style="margin-top:8px">'+KEEP.map(function(k){return '<button type="button" data-keep="'+esc(k)+'" aria-pressed="'+(e.keep.indexOf(k)>=0)+'">'+esc(k)+'</button>'}).join("")+'</div>');
+  h+=card("The character",seg("e.cf",[["keep","Stays exactly the same"],["aff","The change shows on them"],["none","No character in the image"]],"Does the change affect the character?")+(e.cf==="aff"?inp("e.eff","How it shows on the character","e.g. wet hair and damp clothes"):""));
+ }
+ var C=[],re=/\u0001([\s\S]*?)\u0002([\s\S]*?)\u0003/g,m;while((m=re.exec(h)))C.push({t:m[1],b:m[2]});if(S.simple)C=C.filter(function(c){return SIMPLEHIDE.indexOf(c.t)<0});
+ var n=C.length,tag=function(x){return REQ.indexOf(x)<0?' <span class="opt">Optional</span>':''},html;S.step=Math.max(0,Math.min(+S.step||0,n-1));
+ if(S.all)html='<div class="steps inline" style="justify-content:space-between"><span class="lab">All steps on one page</span><button type="button" class="btn ghost sm" data-act="wiz">Show one step at a time</button></div>'+C.map(function(c){return '<div class="card"><h2>'+c.t+tag(c.t)+'</h2>'+c.b+'</div>'}).join("");
+ else{var c=C[S.step],last=S.step===n-1,opt=REQ.indexOf(c.t)<0;
+  html='<div class="steps"><div class="sbar"><span style="width:'+Math.round((S.step+1)/n*100)+'%"></span></div><div class="inline" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><span class="lab">Step '+(S.step+1)+' of '+n+'</span><span class="inline"><select data-jump="1" aria-label="Jump to a step">'+C.map(function(x,i){return '<option value="'+i+'"'+(i===S.step?" selected":"")+'>'+(i+1)+'. '+x.t+(REQ.indexOf(x.t)<0?" (optional)":"")+'</option>'}).join("")+'</select><button type="button" class="btn ghost sm" data-act="all">Show all</button></span></div></div>'+
+  '<div class="card"><h2>'+c.t+tag(c.t)+'</h2>'+c.b+'<div class="wnav"><button type="button" class="btn ghost" data-act="back"'+(S.step===0?" disabled":"")+'>Back</button>'+(opt&&!last?'<button type="button" class="btn ghost" data-act="skip">Skip</button>':'')+'<button type="button" class="btn" data-act="next">'+(last?"Finish":"Proceed")+'</button></div></div>'}
+ $("form").innerHTML=html;out();drawVocab()}
+function out(){var g=build(),man=S.man!=null&&S.man!=="",p=man?S.man:g,w=checks(p),o=$("out");{var pf=window.spFmt?window.spFmt(p):p;if(!man&&o.value!==pf)o.value=pf;}$("edn").hidden=!(man&&S.man!==g);
+ $("checks").innerHTML=w.length?'<ul class="warn">'+w.map(function(x){return "<li>"+esc(x)+"</li>"}).join("")+"</ul>":'<p class="ok">✓ No problems found.</p>';
+ var L=lim(),n=words(p),tk=toks(p),wc=$("wc");wc.textContent=n+" words · about "+tk+" of "+L.max+" tokens · "+L.name+": best "+L.lo+" to "+L.hi+" words";wc.className="hint wc "+(tk>L.max?"bad":(n>L.hi||n<L.lo)?"mid":"good");store(KEY,S);hlDraw();if(cmpOn)drawCmp()}
+
+/* ---------- concept ---------- */
+function fmtN(n){return n>=1e21?"Over "+Math.floor(n/1e21).toLocaleString()+" sextillion":n>=1e18?"Over "+Math.floor(n/1e18)+" quintillion":n>=1e15?"Over "+Math.floor(n/1e15)+" quadrillion":n>=1e12?"Over "+Math.floor(n/1e12)+" trillion":n>=1e9?"Over "+Math.floor(n/1e9)+" billion":n>=1e6?"Over "+Math.floor(n/1e6)+" million":String(Math.round(n))}
+function ccount(){var z=function(g){return V[g].length},k=Object.keys(TH),tp=0;k.forEach(function(x){tp+=TH[x].P.split(";").length});
+ var n=k.length*(4+z("Photo")+z("Art"))*(tp+z("Indoor")+z("City")+z("Nature"))*(4+z("Time")*(z("Weather")+1))*(4+z("Light setup")+z("Light type"))*(z("Light direction")+1)*(z("Light quality")+1)*z("Shot size")*z("Angle")*(z("Lens")+1)*(z("Composition")+1)*3*3*(5*z("Atmosphere"))*(z("Genre")+1)*(z("Image finish")+1)*(z("Color treatment")+1);
+ if(isP())n*=(z("Movement")+z("Still")+z("Hands")+z("Looking"))*(z("Expression")+1)*(z("Pose")+1)*(z("Position")+1);
+ if(isPr())n*=z("Product types")*z("Product colors")*z("Materials")*z("Presentation")*(z("Product effects")+1);
+ if(isO())n*=FG["t.oname"].reduce(function(a,g){return a+z(g)},0)*(z("Subject actions")+1)*(z("Facing")+1);
+ return n}
+function concept(){var keys=Object.keys(TH),key=S.theme==="any"||!TH[S.theme]?pick(keys):S.theme,H=TH[key],t=S.t,r=Math.random,ch=function(x){return r()<x},w=function(g){return pick(V[g])[0]},h=function(f){return pick(H[f].split(";"))};
+ var some=function(list,n){var o=[];for(var i=0;i<n*4&&o.length<n;i++){var x=list();if(x&&o.indexOf(x)<0)o.push(x)}return o.join(", ")};
+ var per=isP(),prOnly=isPr()&&!per,sc=t.subj==="scene";
+ t.sty=ch(.6)?h("S"):w(pick(["Photo","Art"]));t.genre=ch(.35)?w("Genre"):"";if(key!=="motivation"&&t.genre==="motivational poster")t.genre="";
+ t.color=ch(.18)?w("Color treatment"):"";if(t.color==="full-color")t.color="";
+ var gr=sc?false:prOnly?ch(.7):ch(.2);t.bg=gr?"graphic":"place";
+ if(gr){t.gback=w("Backdrop");t.gcol=h("C");t.gshape=ch(.6)?some(function(){return w("Shapes and patterns")},1+Math.floor(r()*2)):"";t.gart=ch(.5)?w("Art movement"):""}
+ t.place=ch(.7)?h("P"):w(pick(["Indoor","City","Nature"]));t.time=ch(.6)?h("T"):w("Time")+(ch(.4)?", "+w("Weather"):"");
+ t.det=gr?(ch(.5)?h("D"):""):some(function(){return ch(.6)?h("D"):w(pick(["Atmosphere","Objects","Background"]))},1+Math.floor(r()*3));
+ t.lit=(ch(.65)?h("L"):ch(.5)?w("Light setup"):w("Light type"))+(ch(.5)?" "+w("Light direction"):"")+(ch(.6)?", "+w("Light quality"):"");
+ t.cam=w("Shot size")+", "+w("Angle")+(ch(.6)?", "+w("Lens"):"")+(ch(.3)?", "+w("Composition"):"");
+ t.mood=h("M")+", "+h("C");t.fin=ch(.4)?w("Image finish"):"";
+ if(isPr()){t.pname=w("Product types");t.pcol=w("Product colors");t.pmat=w("Materials")+(ch(.6)?", "+w("Finish"):"");t.pfeat=ch(.7)?w("Product details"):"";t.pshow=t.subj==="both"?"held in one hand":w("Presentation");t.psurf=t.subj==="both"||ch(.3)?"":w("Surface");t.pfx=ch(.6)?w("Product effects"):"";
+  if(prOnly){if(ch(.6))t.genre="product advertising";if(ch(.5))t.sty="studio photo";if(ch(.7))t.lit=w("Product light")+(ch(.5)?", "+w("Light quality"):"");t.cam=w("Product angle")+(ch(.6)?", "+w("Lens"):"")}}
+ if(isO()){var og=pick(FG["t.oname"]),live=/Animals|Sea life|Insects|Fantasy/.test(og);t.oname=w(og);t.pos=ch(.7)?w("Position"):"";if(live){var nm=t.oname,bird=/eagle|bird|owl|phoenix/.test(nm),L2=bird?[["glossy feathers","soft fluffy feathers",""],["perched on a branch","flying with wings spread","landing with wings open"]]:og==="Sea life"?[["smooth wet skin","shining scales",""],["swimming","diving","gliding through the water"]]:og==="Insects"?[["translucent wings","a shiny shell",""],["flying","resting on a leaf","climbing a stem"]]:og==="Fantasy"?[["shining scales","glowing edges","a metallic body",""],["standing tall","roaring","glowing softly","flying over the land"]]:[["soft fluffy fur","wet fur","thick fur",""],["running at full speed","resting quietly","standing alone","hunting","roaring","climbing upward"]];t.olook=pick(L2[0]);t.oact=pick(L2[1]);t.ofacing=ch(.6)?w("Facing"):""}else if(og==="Plants and flowers"){t.olook=pick(["smooth petals","rough bark","glowing edges",""]);t.oact=pick(["blooming","growing toward the light","standing alone"]);t.ofacing=""}else{t.olook=pick(["a weathered surface","glowing edges","a metallic body",""]);t.oact=pick(["standing alone","glowing softly",""]);t.ofacing=""}}
+ if(!per){t.ca=t.cb=t.cf=t.ce=""}
+ var ja=function(a){return a.length>1?a.slice(0,-1).join(", ")+" and "+a[a.length-1]:a[0]||""},rOut=function(){return (ch(.35)?w("Full outfit"):(function(){var tp=w("Tops");return / and /.test(tp)?tp:tp+" and "+w("Bottoms")})())+(ch(.5)?", with "+w("Shoes"):"")};
+ if(per&&t.refs!=1&&!S.ckeep){var lk=[];if(ch(.4)){var bd=w("Body");lk.push(/^(a|an|broad) /.test(bd)?bd:"a "+bd+" frame")}if(ch(.6))lk.push(some(function(){return w("Face")},1+Math.floor(r()*2)));lk.push(w("Hair"));if(ch(.5))lk.push(w("Accessories"));S.c.name="";S.c.look=w("Who")+" with "+ja(lk);S.c.outfit=rOut()}
+ if(per&&t.refs==1&&!t.rkeep)t.rout=rOut();
+ if(isPr())t.plabel=ch(.3)?pick(["NOVA","AERO","LUMA","KAI","ORBIT","VELA","MOSS","ZEST"]):"";
+ if(per){var ex=w("Expression");t.act=w(pick(["Movement","Still","Hands","Looking"]))+(ch(.7)?", "+(/^(a|an) /.test(ex)?"with "+ex:ex):"");t.pos=ch(.6)?w("Position"):"";t.pose=ch(.6)?w("Pose"):"";
+  if(ch(.35)){var he=/\b(she|her)\b/i.test(S.c.look)||/woman|girl/i.test(S.c.look);t.ca=pick(V["Contrast A"].map(function(x){return x[0]}).filter(function(x){return he?!/\bhis\b/.test(x):!/\bher\b/.test(x)}));t.cb=pick(V["Contrast B"].map(function(x){return x[0]}).filter(function(x){return he?!/\bhim\b/.test(x):!/\bher\b/.test(x)}));t.cf=w("Feeling");t.ce=ch(.6)?w("Emphasis"):""}else{t.ca=t.cb=t.cf=t.ce=""}
+  t.ocut=ch(.3)?w("Cut"):"";t.ofab=ch(.3)?w("Fabric"):"";t.opat=ch(.25)?w("Pattern"):"";t.odet=ch(.25)?w("Construction details"):"";t.skin=ch(.3)?w("Skin and detail"):"";t.acc=ch(.25)?w("Props"):""}
+ if(S.cq){t.txt=h("Q");t.tsty=w("Font")+" "+pick(["at the top of the image","at the bottom of the image","in the center","in the empty space above the subject"]);if(/above the subject/.test(t.tsty))t.cam+=", negative space above the subject"}else{t.txt="";t.tsty=""}
+ t.camq=/photo|film still/.test(t.sty)&&ch(.35)?w(pick(["Phone","Film stock","Digital camera","Retro and lo-fi"])):"";
+ if(S.pkeep&&prOK(S.preset))setPreset(S.preset);
+ S.man=null;render();var c=$("cnote");if(c)c.textContent=H.n+" idea: "+(gr?cut(t.gback):t.place)+". Click again for another."}
+/* ---------- library ---------- */
+function lib(){return load(LIB)||[]}
+function title(){return S.mode==="edit"?"Edit: "+OPS[S.e.op][0]+(cut(S.e.what)?" ("+cut(S.e.what).slice(0,40)+")":""):(cut(S.t.oname)||cut(S.t.pname)||cut(S.t.place)||cut(S.t.txt)||cut(S.t.genre)||cut(S.t.sty)||"Untitled image").slice(0,60)}
+function drawLib(){var L=lib();$("lib").innerHTML=L.length?L.map(function(x,i){return '<li><div><b>'+esc(x.t)+'</b><span class="hint">'+esc(x.d)+'</span></div><span class="inline"><button type="button" class="btn ghost sm" data-lib="load" data-i="'+i+'">Load</button><button type="button" class="btn ghost sm" data-lib="ren" data-i="'+i+'">Rename</button><button type="button" class="btn ghost sm" data-lib="copy" data-i="'+i+'">Copy</button><button type="button" class="btn ghost sm" data-lib="del" data-i="'+i+'">Delete</button></span></li>'}).join(""):'<li class="hint">Nothing saved yet. Click Save above the prompt to keep one here.</li>'}
+function toast(m){var t=$("toast");t.textContent=m;t.className="on";clearTimeout(toast.x);toast.x=setTimeout(function(){t.className=""},1700)}
+function copy(txt){var fb=function(){var a=document.createElement("textarea");a.value=txt;document.body.appendChild(a);a.select();try{document.execCommand("copy");toast("Prompt copied")}catch(e){toast("Select the text and copy it")}a.remove()};
+ try{navigator.clipboard.writeText(txt).then(function(){toast("Prompt copied")},fb)}catch(e){fb()}}
+
+/* ---------- events ---------- */
+function setFrom(t){var p=t.dataset.p,v=t.type==="checkbox"?t.checked:t.value;sp(p,v)}
+document.addEventListener("focusin",function(e){var t=e.target;if(t.dataset&&t.dataset.p&&t.type!=="checkbox"&&t.tagName!=="SELECT"&&lastP!==t.dataset.p){lastP=t.dataset.p;vcat="box";drawVocab();hlDraw()}});
+document.addEventListener("input",function(e){var t=e.target;if(t.id==="out"){S.man=t.value;out();hlDraw();return}if(!t.dataset||!t.dataset.p||t.type==="checkbox"||t.tagName==="SELECT")return;setFrom(t);out()});
+document.addEventListener("change",function(e){var t=e.target,d=t.dataset||{};
+ if(t.type==="checkbox"&&d.p){setFrom(t);render();return}
+ if(t.tagName==="SELECT"&&d.p){setFrom(t);if(d.p==="e.op"){resetKeep();S.e.what="";S.e.where="";S.e.ref=false;lastP="e.what"}render();return}
+ if(d.jump!==undefined){S.step=+t.value;render();goTop();return}
+ if(d.cload!==undefined&&t.value!==""){var x=chars()[+t.value];if(x){S.c=clone(x);render();toast("Loaded "+x.name)}}});
+document.addEventListener("keydown",function(e){var t=e.target;if(!t.classList||!t.classList.contains("renin"))return;if(e.key==="Enter"){e.preventDefault();t.parentNode.querySelector("button").click()}else if(e.key==="Escape")drawLib()});
+document.addEventListener("mousedown",function(e){if(e.target.closest&&e.target.closest(".chip"))e.preventDefault()});
+document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("button");if(!b)return;var d=b.dataset;
+ if(d.seg){var cur=gp(d.seg),v=d.v;sp(d.seg,typeof cur==="number"?+v:typeof cur==="boolean"?v==="true":v);render();return}
+ if(d.keep!==undefined){var K=S.e.keep,i=K.indexOf(d.keep);if(i>=0)K.splice(i,1);else K.push(d.keep);S.e.keep=KEEP.filter(function(k){return K.indexOf(k)>=0});render();return}
+ if(d.clr!==undefined){var ce=$(fid(d.clr));sp(d.clr,"");if(ce){ce.value="";lastP=d.clr;ce.focus()}out();drawVocab();return}
+ if(d.w!==undefined){var el=lastP&&$(fid(lastP));if(!el){toast("Click in a box first");return}
+  if(lastP==="t.txt"){el.value=d.w;el.focus();el.dispatchEvent(new Event("input",{bubbles:true}));return}
+  var focused=document.activeElement===el,s=focused?el.selectionStart:el.value.length,en=focused?el.selectionEnd:el.value.length,pre=el.value.slice(0,s),sep=pre&&!/[\s,]$/.test(pre)?(/[.!?]$/.test(pre)?" ":", "):"";
+  el.setRangeText(sep+d.w,s,en,"end");el.focus();el.dispatchEvent(new Event("input",{bubbles:true}));return}
+ if(d.csave!==undefined){var c=S.c;if(!cut(c.name)){toast("Give the character a name first");return}var L=chars().filter(function(x){return x.name!==cut(c.name)});var cc=clone(c);cc.name=cut(c.name);cc.desc=true;if(cc.voice===undefined)cc.voice="";L.push(cc);store(CH,L);render();toast("Saved "+cc.name);return}
+ if(d.lib){var LL=lib(),x=LL[+d.i];if(!x)return;
+  if(d.lib==="ren"){var li=b.closest("li"),bx=li.querySelector("b");if(!bx)return;bx.outerHTML='<span class="inline"><input class="renin" value="'+esc(x.t)+'" aria-label="New name" style="width:auto;flex:1;min-width:140px"><button type="button" class="btn sm" data-lib="done" data-i="'+d.i+'">Done</button></span>';var ri=li.querySelector(".renin");ri.focus();ri.select();return}
+  if(d.lib==="done"){var ni=b.closest("li").querySelector(".renin"),nv=ni?ni.value.trim():"";if(nv){x.t=nv;store(LIB,LL);toast("Renamed")}drawLib();return}
+  if(d.lib==="load"){S=merge(clone(x.s));render();toast("Loaded")}else if(d.lib==="copy")copy(x.p);else{LL.splice(+d.i,1);store(LIB,LL);drawLib()}return}
+ if(d.act==="concept")concept();
+ else if(d.act==="back"){if(S.step>0)S.step--;render();goTop()}
+ else if(d.act==="next"||d.act==="skip"){var tot=(document.querySelector('[data-jump]')||{options:[]}).options.length;if(S.step>=tot-1){toast("All done. Check and copy your prompt.");try{$("out").scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}}else{S.step++;render();goTop()}}
+ else if(d.act==="all"){S.all=true;render()}
+ else if(d.act==="wiz"){S.all=false;render();goTop()}
+ else if(d.act==="ksave"){var kk=S.k;if(!cut(kk.name)){toast("Give the character a name first");return}var kf=[cut(kk.face),cut(kk.hair),cut(kk.body),cut(kk.extra)].filter(Boolean);var kc={name:cut(kk.name),voice:"",desc:true,look:(cut(kk.who)||"a character")+(kf.length?" with "+kja(kf):""),outfit:[cut(kk.outfit),cut(kk.acc)].filter(Boolean).join(", with ")};var KL=chars().filter(function(x){return x.name!==kc.name});KL.push(kc);store(CH,KL);toast("Saved "+kc.name)}
+ else if(d.act==="preset")applyPreset();
+ else if(d.act==="rebuild"){S.man=null;out();toast("Prompt rebuilt from the boxes")}
+ else if(d.act==="copy")copy($("out").value);
+ else if(d.act==="save"){var L2=lib();L2.unshift({t:title(),d:new Date().toLocaleString(),p:$("out").value,s:clone(S)});store(LIB,L2.slice(0,40));drawLib();toast("Saved to your prompts")}
+ else if(d.act==="clear"){var c0=S.c,m=S.mode;S=fresh();S.c=c0;S.mode=m;S.t.sty="";render();toast("Prompt cleared")}});
+var VCAT={"Style":["Photo","More photo styles","Art","More art styles","Era and genre looks","Genre","Color treatment","Image finish","Texture and finish"],"People":["Who","Body","Face","Hair","Unique marks","Accessories","Tops","Bottoms","Full outfit","Shoes","Pose","Movement","Still","Hands","Looking","Expression"],"Place & light":["Indoor","City","Nature","Time","Weather","Season","Objects","Atmosphere","Background","Mood light","Light type","Light setup","Light direction","Light quality"],"Camera":["Shot size","Angle","Lens","Composition","Position","Phone","Film stock","Digital camera","Retro and lo-fi"],"Mood & color":["Calm and soft","Happy and bright","Strong and energetic","Dark and serious","Mysterious and magical","Warm and emotional","Color and tone","Mood","Colors"],"Subjects":["Animals","Sea life","Insects","Plants and flowers","Food and drink","Vehicles","Buildings","Fantasy","Objects and symbols","Product types"]};
+var vcat="box",TOUCH=typeof matchMedia==="function"&&matchMedia("(hover: none)").matches,sheetOn=false,cmpOn=false;
+var SIMPLEHIDE=["Outfit design","Accessories and props","Skin and detail","Image finish"];
+var MNAME={qwen:"Qwen Image 2.1",seed:"Dola (Seedream)",hig:"Higgsfield (Seedream)",nano:"Nano Banana",gpt:"GPT Image",flux:"FLUX.2"};
+var UC={
+post:{n:"Social media post",d:"A bright, natural photo for Instagram or Facebook, in a 4:5 shape.",f:{ar:"4:5",use:"for a social media post",genre:"lifestyle",sty:"photo",lit:"soft natural light",cam:"a medium shot, at eye level"}},
+thumb:{n:"YouTube thumbnail",d:"Bold, high-contrast and easy to read when small. Wide 16:9.",f:{ar:"16:9",use:"for a YouTube thumbnail",sty:"photo",lit:"a hard key light, high contrast",cam:"a medium close-up, at eye level",mood:"bold and energetic, vibrant colors"}},
+cover:{n:"Shorts / TikTok cover",d:"A vertical 9:16 cover with space at the top for a title.",f:{ar:"9:16",use:"for a TikTok or Shorts cover",sty:"cinematic film still",cam:"a medium shot, at eye level, negative space above the subject"}},
+poster:{n:"Poster",d:"A dramatic poster look in a tall 3:4 shape.",f:{ar:"3:4",use:"for a poster",genre:"movie poster",sty:"cinematic film still",lit:"golden backlight, deep shadows",mood:"dramatic and powerful"}},
+pfp:{n:"Profile picture",d:"A clean, friendly face photo in a square shape.",f:{ar:"1:1",use:"for a profile picture",sty:"portrait photo",lit:"soft studio light, soft shadows",cam:"a medium close-up, at eye level, an 85mm portrait lens look",pose:"facing the camera"},subj:"char"},
+product:{n:"Product page",d:"A clean shop photo of a product on white.",subj:"prod",pr:"ecom",f:{ar:"1:1",use:"for a product page"}},
+ad:{n:"Product ad",d:"A dramatic hero shot of a product for an advert.",subj:"prod",pr:"hero",f:{ar:"4:5",use:"for a social media ad"}},
+wall:{n:"Phone wallpaper",d:"A calm scene with no people, tall 9:16.",subj:"scene",pr:"landscape",f:{ar:"9:16",use:"for a phone wallpaper"}},
+book:{n:"Book cover",d:"An illustrated cover in a 2:3 shape with room for the title.",f:{ar:"2:3",use:"for a book cover",sty:"storybook illustration",cam:"a wide shot, negative space above the subject"}},
+album:{n:"Album cover",d:"A square, moody music cover.",f:{ar:"1:1",use:"for an album cover",genre:"album cover",mood:"moody, cool blue tones"}},
+food:{n:"Menu / food photo",d:"A tasty close-up of a dish.",subj:"other",pr:"food",f:{ar:"4:5",use:"for a menu"}},
+home:{n:"Room / real estate",d:"A bright interior photo with straight lines.",subj:"scene",pr:"architecture",f:{ar:"3:2",place:"a bright modern living room",use:"for a real estate listing"}}};
+var SBQ={
+person:{n:"A person",d:"One character. Fill the look in the Character step.",subj:"char"},
+couple:{n:"Two people",d:"Two people together in one picture.",subj:"char",c:{look:"two friends, a young woman and a young man, standing side by side"}},
+pet:{n:"A pet",d:"A dog or cat as the main subject.",subj:"other",f:{oname:"a golden retriever puppy",oact:"sitting and looking at the camera"}},
+bird:{n:"A bird",d:"A small bird, like the embroidery sample.",subj:"other",f:{oname:"a small songbird",oact:"perched on a branch",ofacing:"facing left"}},
+shoes:{n:"A product",d:"An object for sale, like shoes or a bottle.",subj:"prod",f:{pname:"a pair of white running shoes"}},
+dish:{n:"Food",d:"A dish or drink as the hero.",subj:"other",f:{oname:"a steaming bowl of ramen"}},
+car:{n:"A car",d:"A vehicle as the main subject.",subj:"other",f:{oname:"a vintage sports car"}},
+land:{n:"A landscape",d:"Nature with no people.",subj:"scene",f:{place:"a misty mountain valley at sunrise"}},
+city:{n:"A city street",d:"A street scene with no main character.",subj:"scene",f:{place:"a busy city street at night"}},
+room:{n:"A room",d:"An interior with no people.",subj:"scene",f:{place:"a cozy reading nook by the window"}},
+creature:{n:"A fantasy creature",d:"A dragon, spirit or monster.",subj:"other",f:{oname:"a small friendly dragon",olook:"shining scales"}},
+flower:{n:"A flower",d:"A plant or flower close-up.",subj:"other",f:{oname:"a single red rose",oact:"blooming"}}};
+function quickBody(){var tab=S.qtab||"uc",L=tab==="uc"?UC:tab==="sb"?SBQ:null,sel=S.qsel||"",keys=L?Object.keys(L):Object.keys(PR).filter(prOK),it=sel&&(L?L[sel]:PR[sel]);
+ return '<span class="lab">Quick start</span><div class="pilltabs" role="group" aria-label="Quick start type">'+[["uc","Use cases"],["st","Styles"],["sb","Subjects"]].map(function(x){return '<button type="button" class="ptab" data-qtab="'+x[0]+'" aria-pressed="'+(tab===x[0])+'">'+x[1]+'</button>'}).join("")+'</div>'+
+ '<div class="chips pills">'+keys.map(function(k){var o=L?L[k]:PR[k];return '<button type="button" class="chip" data-qsel="'+k+'" aria-pressed="'+(sel===k)+'" title="'+esc(o.d)+'">'+esc(o.n)+'</button>'}).join("")+'</div>'+
+ (it?'<div class="qinfo"><b>'+esc(it.n)+'</b><p class="hint" style="margin:4px 0 8px">'+esc(it.d)+'</p><button type="button" class="btn sm" data-act="qapply">'+(tab==="uc"?"Use this":tab==="st"?"Apply this style":"Set it up")+'</button></div>':'<p class="hint">'+(TOUCH?"Tap":"Click")+' a pill to see what it is, then apply it.</p>')}
+function qApply(){var tab=S.qtab||"uc",k=S.qsel,t=S.t,hl=[],o;if(!k)return;
+ if(tab==="st"){if(!PR[k])return;S.preset=k;HL=setPreset(k);S.man=null;render();toast("Style applied: "+PR[k].n);setTimeout(function(){HL=[]},2700);return}
+ o=(tab==="uc"?UC:SBQ)[k];if(!o)return;if(o.subj){t.subj=o.subj;t.person=o.subj==="scene"?0:1}
+ if(o.pr){S.preset=o.pr;hl=hl.concat(setPreset(o.pr))}
+ for(var f in (o.f||{})){t[f]=o.f[f];hl.push("t."+f)}
+ if(o.c)for(var g in o.c){if(!cut(S.c[g]))S.c[g]=o.c[g]}
+ HL=hl;S.man=null;render();toast((tab==="uc"?"Set up for: ":"Subject: ")+o.n);setTimeout(function(){HL=[]},2700)}
+function pickG(ks){var o={};ks.forEach(function(k){if(V[k])o[k]=V[k]});return o}
+function groupsFor(p,nodom){if(!p||(!nodom&&!$(fid(p))))return null;var G={};
+ if(p==="e.what"){var o=OPS[S.e.op];if(o&&o[3])G[o[0]]=o[3].split(";").map(function(x){return [x,""]})}
+ else if(p==="e.where"&&S.e.op==="cutout")G["Cutout background"]=V["Cutout background"];
+ else if(FG[p])G=pickG(FG[p]);
+ return Object.keys(G).length?G:null}
+function chipsHTML(G){return Object.keys(G).map(function(g){return '<div class="glabel">'+esc(g)+'</div><div class="chips pills">'+G[g].map(function(w){return '<button type="button" class="chip" title="'+esc(w[1]||"")+'" data-w="'+esc(w[0])+'">'+esc(w[0])+'</button>'}).join("")+'</div>'}).join("")}
+function drawVocab(){var G={},lab="",cats=["box"].concat(Object.keys(VCAT)),used={};Object.keys(VCAT).forEach(function(c){VCAT[c].forEach(function(g){used[g]=1})});if(Object.keys(V).some(function(g){return !used[g]}))cats.push("More");
+ if(lastP&&$(fid(lastP))){var l=document.querySelector('label[for="'+fid(lastP)+'"]');lab=l?l.textContent:""}
+ if(vcat==="box")G=groupsFor(lastP)||{};else if(vcat==="More"){Object.keys(V).forEach(function(g){if(!used[g])G[g]=V[g]})}else G=pickG(VCAT[vcat]||[]);
+ var keys=Object.keys(G);
+ $("vocab").innerHTML='<div class="pilltabs" role="group" aria-label="Word categories">'+cats.map(function(c){return '<button type="button" class="ptab" data-vcat="'+c+'" aria-pressed="'+(vcat===c)+'">'+(c==="box"?"This box":esc(c))+'</button>'}).join("")+'</div>'+
+ (vcat==="box"?(keys.length?'<p class="hint">Words for: <b>'+esc(lab)+'</b>. '+(TOUCH?'Tap a word to add it.':'Click a word to add it. Hover over a word to see what it means.')+'</p>':'<p class="hint">'+(TOUCH?'Tap "Words" next to any box to pick words for it, or browse a category above.':'Click in a box on the left to see words for it, or pick a category above.')+'</p>'):'<p class="hint">'+(TOUCH?'Tap in a box first, then tap a word to add it.':'Click in a box on the left first, then click a word to add it.')+'</p>')+chipsHTML(G);fadeTabs()}
+function openSheet(p){lastP=p;var G=groupsFor(p,1)||{},l=document.querySelector('label[for="'+fid(p)+'"]'),lab=l?l.textContent:"";sheetOn=true;
+ $("sheet").innerHTML='<div class="shead"><b>Words for: '+esc(lab)+'</b><button type="button" class="btn sm" data-act="sheetclose">Done</button></div><p class="hint" style="margin-top:0">Tap words to add them. You can add several.</p>'+
+ Object.keys(G).map(function(g){return '<div class="glabel">'+esc(g)+'</div><div class="chips pills">'+G[g].map(function(w){return '<button type="button" class="chip" data-w="'+esc(w[0])+'">'+esc(w[0])+(w[1]?'<span class="cg">'+esc(w[1])+'</span>':'')+'</button>'}).join("")+'</div>'}).join("");
+ $("sheet").hidden=false;$("sheetbg").hidden=false;$("sheet").scrollTop=0}
+function closeSheet(){sheetOn=false;$("sheet").hidden=true;$("sheetbg").hidden=true;var e=lastP&&$(fid(lastP));if(e&&e.scrollIntoView)try{e.scrollIntoView({block:"center",behavior:"smooth"})}catch(x){}}
+function fadeTabs(){try{[].forEach.call(document.querySelectorAll(".pilltabs"),function(t){t.classList.toggle("more",t.scrollLeft+t.clientWidth<t.scrollWidth-4)})}catch(e){}}
+function hlDraw(){var o=$("out"),b=$("hlb");if(!o||!b||!o.value&&o.value!=="")return;var t=o.value||"",v=lastP?gp(lastP):"",q=typeof v==="string"?v.trim().replace(/[.\s]+$/,""):"",lt=t.toLowerCase(),hit="",cands=[q,q.replace(/["\u201c\u201d]/g,""),q.slice(0,40)];
+ for(var c=0;c<cands.length;c++){if(cands[c].length>=2&&lt.indexOf(cands[c].toLowerCase())>=0){hit=cands[c];break}}
+ var h="",i=0,k,lq=hit.toLowerCase();
+ if(hit){while((k=lt.indexOf(lq,i))>=0){h+=esc(t.slice(i,k))+"<mark>"+esc(t.slice(k,k+hit.length))+"</mark>";i=k+hit.length}}
+ h+=esc(t.slice(i));b.innerHTML=h+"\n";b.scrollTop=o.scrollTop;
+ try{if(hit&&document.activeElement!==o){var m=b.querySelector("mark");if(m&&(m.offsetTop<o.scrollTop||m.offsetTop>o.scrollTop+o.clientHeight-24)){o.scrollTop=Math.max(0,m.offsetTop-o.clientHeight/3);b.scrollTop=o.scrollTop}}}catch(e){}}
+function buildFor(m){var o=S.model;S.model=m;try{return build()}catch(e){return ""}finally{S.model=o}}
+function drawCmp(){var b=$("cmp");if(!b)return;b.hidden=!cmpOn;if(!cmpOn){b.innerHTML="";return}
+ b.innerHTML='<p class="hint">The same image written for each model. Each follows that model\'s own prompt guide. Hand edits to the main prompt are not included.</p>'+Object.keys(MNAME).map(function(m){var t=buildFor(m),w=t.split(/\s+/).filter(Boolean).length;
+  return '<h3>'+esc(MNAME[m])+(m===S.model?' <span class="hint">(current)</span>':'')+'<span class="inline">'+(t?'<span class="hint">'+w+' words</span><button type="button" class="btn ghost sm" data-cpy="'+m+'">Copy</button>':'')+(m!==S.model&&t?'<button type="button" class="btn ghost sm" data-usem="'+m+'">Use this model</button>':'')+'</span></h3>'+(t?'<pre>'+esc(t)+'</pre>':'<p class="hint">Not available.</p>')}).join("")}
+document.addEventListener("scroll",function(e){var t=e.target;if(t&&t.id==="out"){var b=$("hlb");if(b)b.scrollTop=t.scrollTop}if(t&&t.classList&&t.classList.contains("pilltabs"))fadeTabs()},true);
+if(typeof window!=="undefined"&&window.addEventListener)window.addEventListener("resize",fadeTabs);
+document.addEventListener("click",function(e){var t=e.target;if(t&&t.id==="sheetbg")closeSheet()});
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&sheetOn)closeSheet()});
+document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("button");if(!b)return;var d=b.dataset;
+ if(d.wsheet!==undefined){openSheet(d.wsheet);return}
+ if(d.vcat!==undefined){vcat=d.vcat;drawVocab();return}
+ if(d.qtab!==undefined){S.qtab=d.qtab;S.qsel="";render();return}
+ if(d.qsel!==undefined){S.qsel=S.qsel===d.qsel?"":d.qsel;render();return}
+ if(d.cpy!==undefined){copy(buildFor(d.cpy));return}
+ if(d.usem!==undefined){S.model=d.usem;render();toast("Now using "+MNAME[d.usem]);return}
+ if(d.act==="cmp"){cmpOn=!cmpOn;b.setAttribute("aria-expanded",String(cmpOn));drawCmp();return}
+ if(d.act==="sheetclose"){closeSheet();return}
+ if(d.act==="qapply"){qApply();return}},true);
+
+render();drawLib();
+</script>
+<script>(function(){
+var out=document.getElementById("out");
+document.addEventListener("click",function(e){var b=e.target.closest('#cp,[data-act="copy"]');if(!b)return;b.classList.remove("sp-done");void b.offsetWidth;b.classList.add("sp-done");clearTimeout(b._spT);b._spT=setTimeout(function(){b.classList.remove("sp-done")},1300)},true);
+(function(){var st=document.querySelector(".steps");if(!st||!window.matchMedia||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;function k(){var e=document.querySelector(".steps select");return e?e.value:st.textContent}var t=k();setInterval(function(){var n=k();if(n===t)return;t=n;var c=(document.querySelector(".steps")||st).nextElementSibling;if(!c)return;c.classList.remove("sp-step-in");void c.offsetWidth;c.classList.add("sp-step-in")},150)})();
+if(!out||!window.matchMedia||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+var get=function(){return "value" in out?out.value:out.textContent},last=get(),typing=false;
+out.addEventListener("input",function(){typing=true;last=get()});
+setInterval(function(){var v=get();if(v===last)return;last=v;if(document.activeElement===out&&typing)return;typing=false;out.classList.remove("sp-flash");void out.offsetWidth;out.classList.add("sp-flash")},200);
+})();
+</script>
+</body>
+</html>
