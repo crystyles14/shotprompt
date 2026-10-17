@@ -7,6 +7,31 @@ function activeText(s){const fields=SP.isCreative(s)?['idea',...(SP.categoryFiel
 function collect(s,text){const result=SP.warnings(s,text).filter(x=>!root.SPTiming?.active(s)||!['lensconflict','camera'].includes(x.code)).map(x=>({...x,scope:s.draft!==null&&['unmapped','unmappedvideo'].includes(x.code)?'output':'builder'}));const add=(code,message,field,evidence,scope='builder')=>{if(!result.some(x=>x.code===code))result.push({code,message,field,evidence,scope});};
 const raw=activeText(s),pos=positive(raw),match=re=>pos.match(re)?.[0];
 if(SP.isCreative(s)){
+// Content checks inspect authored scene fields, never the recipe's own instructions.
+const format=root.SPContent?.selected(s),timed=!!root.SPTiming?.active(s);
+if(format){
+const listing=format.family==='product'&&format.key==='main';
+if(listing){
+const person=match(/\b(?:a |the |one |single )?(?:person|woman|man|model|creator|influencer)\s+(?:sitting|standing|wearing|holding|walking|looking|posing|presents?)\b/i);
+const setting=match(/\b(?:in (?:a |the )?(?:caf[eé]|bedroom|kitchen|forest|street)|on (?:a |the )?beach|outdoor scene)\b/i);
+if(person||setting)add('listingScene','Main listing image requests the product alone on white, but your scene describes a person or location. Review the scene, or choose Lifestyle / With a person under Product shots.','idea',person||setting);
+if(!timed&&['close','detail'].includes(s.shot))add('listingCrop','Main listing image asks for the whole product, while this framing may crop it. Choose wider framing or a detail format.','shot',SP.shots[s.shot]||s.shot);
+if(s.effect!=='none'&&s.effect)add('listingEffect','A listing image asks for a clean product view. Check whether the selected visual effect obscures or changes the item.','effect',s.effect);
+}
+if(s.type==='video'){
+const shotText=positive([s.idea,s.extra,...(timed?s.beats.map(b=>b.action):[s.action])].join('\n'));
+const cut=shotText.match(/\b(?:cut to|hard cut|jump cut|smash cut|crossfade to)\b/i);
+if(cut&&s.timelineMode!=='multi')add('formatCut','Your action requests a cut, but this plan is a continuous take. Choose Multiple shots or describe an uncut transition.','timing',cut[0]);
+if(format.family==='motion'&&format.key==='showcase'){
+const morph=shotText.match(/\b(?:morphs? into|transforms? into|changes? shape|melts? into)\b/i);
+if(morph)add('productShape','Product showcase asks for stable product geometry, while the action changes its shape. Review the action or choose a format that fits the transformation.',timed?'timing':'action',morph[0]);
+}
+if(timed&&s.timelineMode==='continuous'){
+const fixed=positive(s.extra).match(/\b(?:locked.off camera|static camera|camera (?:stays|remains) still)\b/i);
+if(fixed&&s.beats.some(b=>b.move&&b.move!=='static'&&b.move!=='inherit'))add('timedCamera','Extra instructions lock the camera, but a timed segment requests movement. Review the timed camera moves or the lock.','timing',fixed[0]);
+}
+}
+}
 const night=match(/\b(?:at night|midnight|nighttime|night-time|after dark)\b/i),day=match(/\b(?:in daylight|broad daylight|midday sun|at noon|sunlit|sunrise|sunset)\b/i);
 if(night&&['warm','soft','day'].includes(s.light))add('lighting','The scene describes night, while the light choice asks for daylight. Review which time of day you intend.','light',night);
 if(day&&s.light==='night')add('lighting','Night lighting may conflict with the daylight described in your scene.','light',day);
@@ -70,3 +95,4 @@ return {sent,separate,notes,facts,alibaba,checked:data?'Catalog checked 16 Octob
 root.SPReview={collect,destination,locations,positive};
 if(typeof module!=='undefined')module.exports=root.SPReview;
 })(typeof window==='undefined'?globalThis:window);
+

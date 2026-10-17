@@ -12,3 +12,7 @@ Prompt checks use English heuristics and cannot inspect references or guarantee 
 ## Limits
 
 Prompt checks use English heuristics and cannot inspect references or guarantee generation results. Model capability guidance is a saved snapshot, not a live catalog. Workflow-specific syntax, reference mentions and settings must be supported by the destination you choose. Only individual model profiles are listed. Former content-brief profiles migrate to Seedream 5.0 Pro for images or Seedance 2.5 for videos; references, content and manual output remain preserved. Script and Storyboard are not included. No AI chat or automatic generation is implemented.
+
+## 2.9.4 — Content conflict review
+
+Adds nonblocking review notes for listing scenes with people/locations, cropped listing framing, listing VFX, cuts in continuous takes, product-showcase transformations, and a global camera lock conflicting with timed movement. Checks inspect active authored fields, skip source edits and character sheets, and keep manually edited output unchanged. These are English heuristics, not image analysis or semantic AI review. Review links lead to the relevant controls.
