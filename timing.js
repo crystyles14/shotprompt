@@ -68,7 +68,7 @@ return w;
 }
 function handoff(s){
 if(!active(s))return null;
-const notes=[];if(s.model==='marketingVideo')notes.push('Marketing Studio: this is requested action pacing, not a native cut timeline. Select the format, duration, Product and Avatar separately.');
+const notes=[];
 if(s.timelineMode==='multi'){
 if(s.model==='wan26')notes.push('Alibaba Cloud Wan 2.6: set shot_type to multi and prompt_extend to true. These API settings are not enabled by this text.');
 if(s.model==='kling3')notes.push('Enable Multi-Shot and Custom Multi-Shot in the destination. Enter each shot’s text and duration in its shot controls. On a compatible provider route, multi_shots and multi_prompt are separate settings; copying this text alone does not set them.');

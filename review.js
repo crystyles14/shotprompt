@@ -42,7 +42,7 @@ if(data?.duration&&s.type==='video'&&s.videoTask!=='edit'&&(s.duration<data.dura
 return result;
 }
 const locations={idea:'idea',edit:'editChange',base:'refs',sourcevideo:'refs',views:'views',emptyviews:'views',camera:'move',duration:'duration',speech:'dialogue',elements:'refs',token:'refs',workflow:'model',ratio:'ratio',refs:'refs',negative:'negative',unmapped:'refs',unmappedvideo:'refs',editconflict:'editChange',audio:'audio',elementsource:'refs',sheetidentity:'refs',layout:'refs',effectconflict:'effect',lensconflict:'lens',effectdetail:'effectNotes',zoomlens:'lens',composition:'composition',videoref:'model',editmodel:'model'};
-function destination(s){if(s.model.startsWith('marketing')&&root.SPContent)return root.SPContent.destination(s);
+function destination(s){
 const p=SP.profiles[s.model],data=(root.SPModelData||[]).find(x=>x.id===modelIds[s.model]),video=s.type==='video',source=video&&s.videoTask!=='new',edit=s.type==='image'&&s.task==='edit',comfy=['qwen','flux','wan','ltx'].includes(s.model);
 const sent=[s.type==='sheet'?'Character identity, requested views and panel layout.':source||edit?'Requested changes and preservation instructions.':'Scene, look, framing, lighting and selected camera/VFX directions.', 'Reference labels and role instructions; the actual media must be attached separately.'];
 if(video&&!source)sent.push('Subject action, requested duration, audio description and dialogue.');
